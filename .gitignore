@@ -1,0 +1,13 @@
+﻿# Environnement et caches
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+references/empty.xlsx
+
+# Construction du paquet
+build/
+dist/
+*.egg-info/

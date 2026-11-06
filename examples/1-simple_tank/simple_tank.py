@@ -1,52 +1,50 @@
 # coding: utf-8
 from tanksim.tank import Geometry, Tank
+from tanksim.tank import Breach
 from tanksim.record import Record
+from tanksim.simulation import Simulation
 
 def main():
     # Element declaration
     elements = []
 
     tank = Tank(Geometry(height=1.0, surface=2.5))
+    tank.add_opening()
     tank.set_level(level=0.5)
 
-    elements.append(tank)
+
+    simulation = Simulation()
+    simulation.append(tank)
 
     # Variable declaration
-    time = 0.0
     t_max = 100.0
-    dt = 0.1
-
     t_print = 0.0
     dt_print = 5.0
 
     record = Record()
 
-    while time < t_max:
+    while simulation.time < t_max:
         # Actions
-        if time > 10.0:
+        if simulation.time > 10.0:
             tank.openbreak(massflow=20.0)
 
         # Prints        
-        if time >= t_print:
+        if simulation.time >= t_print:
             print("="*50)
-            print(f"time = {time:.2f} s")
+            print(f"time = {simulation.time:.2f} s")
             print("="*50)
             tank.show()
             print()
 
-            record.monitor("m_liq", time, tank.liquid_mass)
-            record.monitor("v_liq", time, tank.liquid_volume)
-            record.monitor("lvl", time, tank.level)
-            record.monitor("qm_break", time, tank.massflow_break)
+            record.monitor("m_liq", simulation.time, tank.liquid_mass)
+            record.monitor("v_liq", simulation.time, tank.liquid_volume)
+            record.monitor("lvl", simulation.time, tank.level)
+            record.monitor("qm_break", simulation.time, tank.massflow_break)
 
             t_print += dt_print
 
-        # Time management
-        time += dt
 
-        # Elements management
-        for elem in elements:
-            elem.update(dt)
+        dt = simulation.step()
 
     record.show()
 

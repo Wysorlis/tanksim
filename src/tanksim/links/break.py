@@ -2,7 +2,7 @@
 import numpy as np
 
 
-class Break:
+class Breach:
     def __init__(self, diameter: float):
         self._massflow = 0.0
         self._velocity = 0.0
