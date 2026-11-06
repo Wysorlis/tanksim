@@ -41,7 +41,7 @@ class Record:
         for ax, (name, record) in zip(
             axes.flat, self.stored_variables.items()
         ):
-            ax.plot(record.time, record.value)
+            ax.plot(record.time, record.value, marker=".")
             ax.set_title(name)
             ax.set_xlabel("Temps")
             ax.set_ylabel(name)
