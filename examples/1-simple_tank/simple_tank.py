@@ -9,7 +9,6 @@ def main():
     elements = []
 
     tank = Tank(Geometry(height=1.0, surface=2.5))
-    # tank.add_orifice(diameter=)
     tank.set_level(level=0.5)
 
     is_orifice_opened = False
@@ -17,7 +16,7 @@ def main():
     simulation = Simulation()
     simulation.append(tank)
 
-    # Variable declaration
+    # Variables declaration
     t_max = 100.0
     t_print = 0.0
     dt_print = 5.0
@@ -45,7 +44,6 @@ def main():
                 record.monitor(f"qm_break{i}", simulation.time, ori.massflow)
 
             t_print += dt_print
-
 
         dt = simulation.step()
 

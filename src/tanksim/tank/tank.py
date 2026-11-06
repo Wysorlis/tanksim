@@ -1,5 +1,5 @@
 # coding: utf-8
-from .geometry import Geometry
+from tanksim.tank.geometry import Geometry
 from tanksim.models.orifice import Orifice 
 
 

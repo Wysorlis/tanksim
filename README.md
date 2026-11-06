@@ -9,3 +9,18 @@ TankSim is a small Python solver for 0D incompressible fluid systems.
 Systems are built as networks of connected volumes. Volumes hold fluid and exchange it through links representing openings, orifices, breaches, or pumps.
 
 Each volume is described by a single, spatially averaged state. The solver tracks how these states evolve as fluid moves between volumes over time.
+
+## Tests
+
+Install development dependencies and run the tests:
+
+```sh
+uv sync
+uv run pytest
+```
+
+Run one test file:
+
+```sh
+uv run pytest test/test_port.py -v
+```
