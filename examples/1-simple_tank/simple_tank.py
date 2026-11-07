@@ -1,33 +1,74 @@
 # coding: utf-8
-from tanksim.tank import Geometry, Tank
+from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
+from tanksim.boundaries import Atmosphere
+from tanksim.link import Link
 from tanksim.record import Record
 from tanksim.simulation import Simulation
 
 def main():
-    # Element declaration
-    elements = []
-
     tank = Tank(Geometry(height=1.0, surface=2.5))
-    tank.set_level(level=0.5)
+    tank.set_level(level=0.2)
 
-    is_orifice_opened = False
+    tank2 = Tank(Geometry(height=1.0, surface=2.5))
+    tank2.set_level(level=0.8)
+
+    tank3 = Tank(Geometry(height=2.0, surface=3.0))
+    tank3.set_level(level=0.6)
+    
+    connection = Link(
+        upstream=Port(tank, 0.2),
+        downstream=Port(tank2, 0.0),
+        model=Orifice(diameter=100.0e-3),
+        align_ports=True,
+    )
+
+    connection2 = Link(
+        upstream=Port(tank2, 0.0),
+        downstream=Port(tank3, 2.0),
+        model=Orifice(diameter=100.0e-3),
+        align_ports=True,
+    )
+
+    connection3 = Link(
+        upstream=Port(tank3, 0.0),
+        downstream=Atmosphere(),
+        model=Orifice(diameter=400.0e-3),
+    )
 
     simulation = Simulation()
-    simulation.append(tank)
+    simulation.add_tank(tank)
+    simulation.add_tank(tank2)
+    simulation.add_tank(tank3)
+    simulation.add_link(connection)
+    simulation.add_link(connection2)
+    simulation.add_link(connection3)
+    simulation.setup()
 
     # Variables declaration
-    t_max = 100.0
+    t_max = 300.0
     t_print = 0.0
     dt_print = 5.0
+
+    is_orifice_opened = False
+    is_orifice_opened2 = False
+    is_orifice_opened3 = False
 
     record = Record()
 
     while simulation.time < t_max:
         # Actions
         if simulation.time > 10.0 and is_orifice_opened == False:
-            tank.add_orifice(diameter=100.0e-3)
+            connection.open()
             is_orifice_opened = True
+
+        if simulation.time > 50.0 and is_orifice_opened2 == False:
+            connection2.open()
+            is_orifice_opened2 = True
+
+        if simulation.time > 100.0 and is_orifice_opened3 == False:
+            connection3.open()
+            is_orifice_opened3 = True
 
         # Prints        
         if simulation.time >= t_print:
@@ -35,13 +76,19 @@ def main():
             print(f"time = {simulation.time:.2f} s")
             print("="*50)
             tank.show()
+            tank2.show()
+            tank3.show()
             print()
 
             record.monitor("m_liq", simulation.time, tank.liquid_mass)
-            record.monitor("v_liq", simulation.time, tank.liquid_volume)
+            # record.monitor("v_liq", simulation.time, tank.liquid_volume)
             record.monitor("lvl", simulation.time, tank.level)
-            for i, ori in enumerate(tank.orifices):
-                record.monitor(f"qm_break{i}", simulation.time, ori.massflow)
+            record.monitor("m_liq2", simulation.time, tank2.liquid_mass)
+            record.monitor("lvl2", simulation.time, tank2.level)
+            record.monitor("m_liq3", simulation.time, tank3.liquid_mass)
+            record.monitor("lvl3", simulation.time, tank3.level)
+            # for i, ori in enumerate(tank.orifices):
+            #     record.monitor(f"qm_break{i}", simulation.time, ori.massflow)
 
             t_print += dt_print
 
