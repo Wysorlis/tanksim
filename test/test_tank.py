@@ -1,6 +1,10 @@
 import pytest
 
-from tanksim.tank import Geometry, Tank
+from tanksim.boundaries import Atmosphere
+from tanksim.link import Link
+from tanksim.models.orifice import Orifice
+from tanksim.simulation import Simulation
+from tanksim.tank import Geometry, Port, Tank
 
 
 def test_closed_tank_preserves_mass_and_level():
@@ -11,7 +15,7 @@ def test_closed_tank_preserves_mass_and_level():
     initial_level = tank.level
 
     for _ in range(10):
-        tank.update(dt=0.1)
+        tank.update(dt=0.1, net_massflow=0.0)
 
     assert tank.liquid_mass == pytest.approx(initial_mass)
     assert tank.liquid_volume == pytest.approx(initial_volume)
@@ -21,14 +25,26 @@ def test_closed_tank_preserves_mass_and_level():
 def test_mass_loss_matches_total_outflow_through_two_orifices():
     tank = Tank(Geometry(height=1.0, surface=2.5))
     tank.set_level(0.5)
-    tank.add_orifice(diameter=0.01)
-    tank.add_orifice(diameter=0.02)
+    connections = [
+        Link(
+            upstream=Port(tank=tank, height=0.0),
+            downstream=Atmosphere(),
+            model=Orifice(diameter=diameter),
+        )
+        for diameter in (0.01, 0.02)
+    ]
+    for connection in connections:
+        connection.open()
+
     initial_mass = tank.liquid_mass
     dt = 0.1
+    simulation = Simulation(tanks=[tank], links=connections)
+    simulation.dt = dt
+    simulation.setup()
 
-    tank.update(dt)
+    simulation.step()
 
-    discharged_mass = sum(orifice.massflow for orifice in tank.orifices) * dt
+    discharged_mass = sum(connection.massflow for connection in connections) * dt
     assert discharged_mass > 0.0
     assert initial_mass - tank.liquid_mass == pytest.approx(discharged_mass)
     assert tank.liquid_mass == pytest.approx(tank.liquid_volume * tank.liquid_density)
