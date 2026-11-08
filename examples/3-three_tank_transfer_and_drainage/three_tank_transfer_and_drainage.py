@@ -1,4 +1,6 @@
 # coding: utf-8
+from pathlib import Path
+
 from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
@@ -81,19 +83,19 @@ def main():
             print()
 
             record.monitor("m_liq", simulation.time, tank.liquid_mass)
-            # record.monitor("v_liq", simulation.time, tank.liquid_volume)
             record.monitor("lvl", simulation.time, tank.level)
+
             record.monitor("m_liq2", simulation.time, tank2.liquid_mass)
             record.monitor("lvl2", simulation.time, tank2.level)
+
             record.monitor("m_liq3", simulation.time, tank3.liquid_mass)
             record.monitor("lvl3", simulation.time, tank3.level)
-            # for i, ori in enumerate(tank.orifices):
-            #     record.monitor(f"qm_break{i}", simulation.time, ori.massflow)
 
             t_print += dt_print
 
         dt = simulation.step()
 
+    record.save_pdf(Path(__file__).with_name("results.pdf"))
     record.show()
 
 if __name__ == "__main__":

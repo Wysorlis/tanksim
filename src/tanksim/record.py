@@ -2,6 +2,8 @@
 import math
 import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
+from pathlib import Path
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 @dataclass
@@ -53,3 +55,27 @@ class Record:
 
         fig.tight_layout()
         plt.show()
+
+    def save_pdf(self, filename: str | Path = "results.pdf") -> Path:
+        if not self.stored_variables:
+            raise ValueError("No recorded variables to export.")
+
+        path = Path(filename).resolve()
+
+        with PdfPages(path) as pdf:
+            for name, record in self.stored_variables.items():
+                fig, ax = plt.subplots(figsize=(10, 5))
+
+                try:
+                    ax.plot(record.time, record.value)
+                    ax.set_title(name)
+                    ax.set_xlabel("Temps (s)")
+                    ax.set_ylabel(name)
+                    ax.grid(True)
+
+                    fig.tight_layout()
+                    pdf.savefig(fig)
+                finally:
+                    plt.close(fig)
+
+        return path
