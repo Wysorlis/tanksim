@@ -5,11 +5,12 @@ from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
 from tanksim.link import Link
-from tanksim.record import Record
+from tanksim.postprocessing import Record, ReadResults
 from tanksim.simulation import Simulation
 
 def main():
-    tank = Tank(Geometry(height=1.0, surface=2.5))
+    tank = Tank("TANK_A")
+    tank.add_geometry(Geometry(height=1.0, surface=2.5))
     tank.set_level(level=0.8)
     
     connection = Link(
@@ -49,12 +50,17 @@ def main():
             print()
 
             record.monitor("m_liq", simulation.time, tank.liquid_mass)
-            # record.monitor("v_liq", simulation.time, tank.liquid_volume)
+            record.monitor("v_liq", simulation.time, tank.liquid_volume)
             record.monitor("lvl", simulation.time, tank.level)
 
             t_print += dt_print
 
         dt = simulation.step()
+
+    # plots = ReadResults()
+    # time, lvl = plots.read(tank.name, "level")
+    # print(time)
+    # print(lvl)
 
     record.save_pdf(Path(__file__).with_name("results.pdf"))
     record.show()

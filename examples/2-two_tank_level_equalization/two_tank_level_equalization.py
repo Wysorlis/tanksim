@@ -5,27 +5,29 @@ from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
 from tanksim.link import Link
-from tanksim.record import Record
+from tanksim.postprocessing.record import Record
 from tanksim.simulation import Simulation
 
 def main():
-    tank = Tank(Geometry(height=1.0, surface=2.5))
-    tank.set_level(level=0.2)
+    tank_a = Tank("TANK_A")
+    tank_a.add_geometry(Geometry(height=1.0, surface=2.5))
+    tank_a.set_level(level=0.2)
 
-    tank2 = Tank(Geometry(height=1.0, surface=2.5))
-    tank2.set_level(level=0.8)
+    tank_b = Tank("TANK_B")
+    tank_b.add_geometry(Geometry(height=1.0, surface=2.5))
+    tank_b.set_level(level=0.8)
     
     connection = Link(
-        upstream=Port(tank, 0.0),
-        downstream=Port(tank2, 0.0),
+        upstream=Port(tank_a, 0.0),
+        downstream=Port(tank_b, 0.0),
         model=Orifice(diameter=100.0e-3),
         align_ports=True,
     )
 
 
     simulation = Simulation()
-    simulation.add_tank(tank)
-    simulation.add_tank(tank2)
+    simulation.add_tank(tank_a)
+    simulation.add_tank(tank_b)
     simulation.add_link(connection)
     simulation.setup()
 
@@ -49,15 +51,15 @@ def main():
             print("="*50)
             print(f"time = {simulation.time:.2f} s")
             print("="*50)
-            tank.show()
-            tank2.show()
+            tank_a.show()
+            tank_b.show()
             print()
 
-            record.monitor("m_liq", simulation.time, tank.liquid_mass)
-            record.monitor("lvl", simulation.time, tank.level)
+            record.monitor("m_liq", simulation.time, tank_a.liquid_mass)
+            record.monitor("lvl", simulation.time, tank_a.level)
 
-            record.monitor("m_liq2", simulation.time, tank2.liquid_mass)
-            record.monitor("lvl2", simulation.time, tank2.level)
+            record.monitor("m_liq2", simulation.time, tank_b.liquid_mass)
+            record.monitor("lvl2", simulation.time, tank_b.level)
 
             t_print += dt_print
 

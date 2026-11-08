@@ -11,8 +11,9 @@ if TYPE_CHECKING:
 
 
 class Tank:
-    def __init__(self, geometry: Geometry):
-        self.geometry = geometry
+    def __init__(self, name: str):
+        self.name = name
+        self.geometry = None
         self.level = None
         self.liquid_volume = None
         self.liquid_density = 1000.0
@@ -22,7 +23,13 @@ class Tank:
 
         self.orifices: list[Orifice] = []
 
+    def add_geometry(self, geometry: Geometry):
+        self.geometry = geometry
+
     def set_level(self, level: float):
+        if not self.geometry:
+            raise ValueError("Geometry must be set before asigning level to a tank. You should use tank.add_geometry().")
+        
         self.level = level
         self.liquid_volume = self.geometry.surface * level
         self.liquid_mass = self.liquid_volume * self.liquid_density

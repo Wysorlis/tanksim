@@ -1,9 +1,11 @@
 # coding: utf-8
 import numpy as np
 from math import isclose
+from pathlib import Path
 
 from tanksim.tank import Tank, Port
 from tanksim.link import Link
+from tanksim.postprocessing.record import Record
 
 class Simulation:
     def __init__(self, tanks: list[Tank]=None, links: list[Link]=None):
@@ -19,6 +21,8 @@ class Simulation:
         if links is not None:
             for link in links:
                 self.add_link(link)
+
+        self.record = Record()
 
     def add_tank(self, tank: Tank):
         self.tanks.append(tank)
@@ -50,7 +54,11 @@ class Simulation:
         # Updating time
         self.time += self.dt
 
+        # Saving results
+        self.record.save_state(self)
+
         return self.dt
+    
     def setup(self, tolerance: float = 1e-9):
         graph = {tank: [] for tank in self.tanks}
 

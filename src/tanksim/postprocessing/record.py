@@ -1,10 +1,20 @@
 # coding: utf-8
+from __future__ import annotations
+import __main__
+
 import math
 import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
 from pathlib import Path
 from matplotlib.backends.backend_pdf import PdfPages
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tanksim.simulation import Simulation
+
+import h5py
+from h5py import Group
 
 @dataclass
 class TimeRecord:
@@ -17,13 +27,65 @@ class TimeRecord:
 
 class Record:
     def __init__(self):
+        script_file = getattr(__main__, "__file__", None)
+
+        self.output_folder_path = Path(script_file).resolve().parent
+        self.output_results_path = self.output_folder_path / "results.h5"
+
         self.stored_variables = {}
+
+        self.next_record_time = 0.0
+        self.dt_record_time = 5.0
 
     def monitor(self, name: str, time: float, value: float):
         if name not in self.stored_variables:
             self.stored_variables[name] = TimeRecord()
 
         self.stored_variables[name].append(new_time=time, new_value=value)
+
+    def initialise_dataset_time_series(self, group: Group):
+        times = group.create_dataset(
+            "time",
+            shape=(0,),
+            maxshape=(None,),
+            dtype="f8",
+            compression="gzip",
+            compression_opts=4,
+        )
+
+        values = group.create_dataset(
+            "values",
+            shape=(0,),
+            maxshape=(None,),
+            dtype="f8",
+            compression="gzip",
+            compression_opts=4,
+        )
+        return times, values
+
+    
+    def save_state(self, simulation: Simulation):
+        if simulation.time < self.next_record_time:
+            return
+
+        with h5py.File(self.output_results_path, "a") as file:
+            for tank in simulation.tanks:
+                level = file.require_group(f"{tank.name}/level")
+
+                if "time" not in level:
+                    times, values = self.initialise_dataset_time_series(level)
+
+                times = level["time"]
+                values = level["values"]
+
+                index = len(times)
+                times.resize(index + 1, axis=0)
+                values.resize(index + 1, axis=0)
+
+                times[index] = simulation.time
+                values[index] = tank.level
+
+        self.next_record_time += self.dt_record_time
 
     def show(self):
         count = len(self.stored_variables)
