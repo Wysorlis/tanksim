@@ -3,18 +3,17 @@ from pathlib import Path
 
 from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
-from tanksim.boundaries import Atmosphere
 from tanksim.link import Link
-from tanksim.postprocessing.record import Record
+from tanksim.postprocessing import ReadResults, PhysicalProperty
 from tanksim.simulation import Simulation
 
 def main():
     tank_a = Tank("TANK_A")
-    tank_a.add_geometry(Geometry(height=1.0, surface=2.5))
+    tank_a.set_geometry(Geometry(height=1.0, surface=2.5))
     tank_a.set_level(level=0.2)
 
     tank_b = Tank("TANK_B")
-    tank_b.add_geometry(Geometry(height=1.0, surface=2.5))
+    tank_b.set_geometry(Geometry(height=1.0, surface=2.5))
     tank_b.set_level(level=0.8)
     
     connection = Link(
@@ -32,13 +31,14 @@ def main():
     simulation.setup()
 
     # Variables declaration
+    simulation.enable_state_recording(interval=5.0)
     t_max = 300.0
     t_print = 0.0
     dt_print = 5.0
 
     is_orifice_opened = False
 
-    record = Record()
+    # record = Record()
 
     while simulation.time < t_max:
         # Actions
@@ -55,18 +55,18 @@ def main():
             tank_b.show()
             print()
 
-            record.monitor("m_liq", simulation.time, tank_a.liquid_mass)
-            record.monitor("lvl", simulation.time, tank_a.level)
-
-            record.monitor("m_liq2", simulation.time, tank_b.liquid_mass)
-            record.monitor("lvl2", simulation.time, tank_b.level)
-
             t_print += dt_print
 
         dt = simulation.step()
 
-    record.save_pdf(Path(__file__).with_name("results.pdf"))
-    record.show()
+    results = ReadResults()
+    results.add_time_evolution(tank_a.name, PhysicalProperty.MASS)
+    results.add_time_evolution(tank_a.name, PhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_b.name, PhysicalProperty.MASS)
+    results.add_time_evolution(tank_b.name, PhysicalProperty.LEVEL)
+    results.show()
+
+    results.save_pdf()
 
 if __name__ == "__main__":
     main()

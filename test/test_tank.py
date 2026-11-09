@@ -8,7 +8,8 @@ from tanksim.tank import Geometry, Port, Tank
 
 
 def test_closed_tank_preserves_mass_and_level():
-    tank = Tank(Geometry(height=2.0, surface=2.5))
+    tank = Tank("TANK")
+    tank.set_geometry(Geometry(height=1.0, surface=2.5))
     tank.set_level(0.5)
     initial_mass = tank.liquid_mass
     initial_volume = tank.liquid_volume
@@ -23,7 +24,8 @@ def test_closed_tank_preserves_mass_and_level():
 
 
 def test_mass_loss_matches_total_outflow_through_two_orifices():
-    tank = Tank(Geometry(height=1.0, surface=2.5))
+    tank = Tank("TANK")
+    tank.set_geometry(Geometry(height=1.0, surface=2.5))
     tank.set_level(0.5)
     connections = [
         Link(

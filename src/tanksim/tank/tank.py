@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tanksim.tank.geometry import Geometry
+from tanksim.tank.state import TankState
 from tanksim.constants import STANDARD_ATMOSPHERIC_PRESSURE
 
 if TYPE_CHECKING:
@@ -14,39 +15,26 @@ class Tank:
     def __init__(self, name: str):
         self.name = name
         self.geometry = None
-        self.level = None
-        self.liquid_volume = None
-        self.liquid_density = 1000.0
-        self.liquid_mass = None
+
+        self.state = TankState()
+
         self.surface_pressure: float = STANDARD_ATMOSPHERIC_PRESSURE
         self.bottom_elevation: float | None = None
 
         self.orifices: list[Orifice] = []
 
-    def add_geometry(self, geometry: Geometry):
+    def set_geometry(self, geometry: Geometry):
         self.geometry = geometry
 
     def set_level(self, level: float):
-        if not self.geometry:
-            raise ValueError("Geometry must be set before asigning level to a tank. You should use tank.add_geometry().")
+        if self.geometry is None:
+            raise ValueError("Geometry must be set before asigning level to a tank. Consider using tank.add_geometry().")
         
-        self.level = level
-        self.liquid_volume = self.geometry.surface * level
-        self.liquid_mass = self.liquid_volume * self.liquid_density
-
-    # def add_orifice(self, diameter: float):
-    #     self.orifices.append(Orifice(diameter=diameter))
+        self.state.liquid_mass = level * self.geometry.surface * self.liquid_density
 
     def update(self, dt, net_massflow):
-        self.liquid_mass += net_massflow * dt
+        self.state.liquid_mass = max(0.0, self.state.liquid_mass + net_massflow * dt)
 
-        self.liquid_volume = self.liquid_mass / self.liquid_density 
-        self.level = self.liquid_volume / self.geometry.surface
-        if self.liquid_mass < 0:
-            self.liquid_mass = 0.0
-            self.liquid_volume = 0.0
-            self.level = 0.0
-    
     def show(self):
         print(f"+++++++ TANK +++++++")
         print(f"| mliq             = {self.liquid_mass:<3.2f} kg")
@@ -55,3 +43,21 @@ class Tank:
         for i, ori in enumerate(self.orifices):
             print(f"| massflow (break n°{i}) = {ori.massflow:<3.2f} kg/s")
         print(f"++++++++++++++++++++")
+
+    @property
+    def liquid_mass(self) -> float:
+        return self.state.liquid_mass
+    
+    @property
+    def liquid_volume(self) -> float:
+        return self.liquid_mass / self.liquid_density
+
+    @property
+    def level(self) -> float:
+        if self.geometry is None:
+            raise ValueError("Set the tank geometry before reading its level.")
+        return self.liquid_volume / self.geometry.surface
+
+    @property
+    def liquid_density(self) -> float:
+        return self.state.liquid_density

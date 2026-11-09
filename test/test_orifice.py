@@ -9,7 +9,8 @@ from tanksim.tank import Geometry, Port, Tank
 
 
 def test_orifice_has_no_flow_at_zero_head():
-    tank = Tank(Geometry(height=1.0, surface=2.5))
+    tank = Tank("TANK")
+    tank.set_geometry(Geometry(height=1.0, surface=2.5))
     tank.set_level(0.0)
     orifice = Orifice(diameter=0.01)
 
@@ -26,8 +27,9 @@ def test_orifice_matches_torricelli_reference_case():
     # A head of 2 / g metres gives a velocity of 2 m/s.
     # With a section of 0.001 m² and water at 1000 kg/m³,
     # the expected mass flow is 2 kg/s.
-    tank = Tank(Geometry(height=1.0, surface=2.5))
-    tank.liquid_density = 1000.0
+    tank = Tank("TANK")
+    tank.set_geometry(Geometry(height=1.0, surface=2.5))
+    tank.state.liquid_density = 1000.0
     tank.set_level(2.0 / GRAVITY)
     orifice = Orifice(diameter=sqrt(4.0 * 0.001 / pi))
 

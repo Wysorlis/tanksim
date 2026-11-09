@@ -7,6 +7,10 @@ __pycache__/
 .ruff_cache/
 references/empty.xlsx
 *.h5
+regenerate_project.py
+tanksim_sources.txt
+
+
 # Construction du paquet
 build/
 dist/

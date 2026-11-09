@@ -1,4 +1,3 @@
-from .record import Record
-from .read_results import ReadResults
+from .read_results import ReadResults, PhysicalProperty
 
-__all__ = ["Record", "ReadResults"]
+__all__ = ["ReadResults", "PhysicalProperty"]

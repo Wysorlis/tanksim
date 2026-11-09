@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tanksim.tank import Tank, Port
 from tanksim.link import Link
-from tanksim.postprocessing.record import Record
+from tanksim.storage.results_storage import ResultsStorage
 
 class Simulation:
     def __init__(self, tanks: list[Tank]=None, links: list[Link]=None):
@@ -22,7 +22,7 @@ class Simulation:
             for link in links:
                 self.add_link(link)
 
-        self.record = Record()
+        self.results_storage = ResultsStorage()
 
     def add_tank(self, tank: Tank):
         self.tanks.append(tank)
@@ -55,7 +55,7 @@ class Simulation:
         self.time += self.dt
 
         # Saving results
-        self.record.save_state(self)
+        self.results_storage.save_state(self)
 
         return self.dt
     
@@ -141,3 +141,6 @@ class Simulation:
         # Appliquer les positions uniquement si tout le réseau est compatible.
         for tank, elevation in resolved.items():
             tank.bottom_elevation = elevation
+
+    def enable_state_recording(self, interval: float):
+        self.results_storage.enable(interval)
