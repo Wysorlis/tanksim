@@ -30,13 +30,12 @@ StrToClass = {
     "Link": Link,
 }
 
-def _get_element_reader(path: Path, element: str | Element) -> Reader:
+def _get_element_reader(file: h5py.File, element: str | Element) -> Reader:
     if isinstance(element, str):
-        with h5py.File(path, "r") as file:
-            if element not in file:
-                raise KeyError(f"Requested element name {element!r} not found.")
-            
-            class_name = file[f"{element}/type"].attrs["class_name"]
+        if element not in file:
+            raise KeyError(f"Requested element name {element!r} not found.")
+        
+        class_name = file[f"{element}/type"].attrs["class_name"]
 
         element_type = StrToClass.get(class_name)
 
@@ -48,15 +47,15 @@ def _get_element_reader(path: Path, element: str | Element) -> Reader:
     reader_class = ELEMENT_TO_READER.get(element_type)
 
     if reader_class is None:
-        raise TypeError(f"Unsupported type: {type(element_type).__name__}")
+        raise TypeError(f"Unsupported type: {element_type.__name__}")
 
     return reader_class()
 
 
 class ReadResults():
-    def __init__(self, path: Path=None):
+    def __init__(self, path: str | Path | None=None):
         script_file = getattr(__main__, "__file__", None)
-        self.output_results_path = Path(script_file).resolve().with_name("results.h5") if path is None else path
+        self.output_results_path = Path(script_file).resolve().with_name("results.h5") if path is None else Path(path)
 
         self.requested_variables = {}
 
@@ -70,15 +69,15 @@ class ReadResults():
             
             element_name = _get_element_name(element)
 
-            reader = _get_element_reader(self.output_results_path, element)
-
             with h5py.File(self.output_results_path, "r") as file:
+                reader = _get_element_reader(file, element)
+
                 evolution = reader.read(file, element_name, variable)
 
             self.add_requested_variable(element_name, variable, evolution)
 
     def add_requested_variable(self, name: str, variable: str | PhysicalProperty, requested_evolution: TimeEvolution):
-        key_to_store = f"{name}-{variable}"
+        key_to_store = (name, variable)
 
         if key_to_store in self.requested_variables.keys():
             known_properties = "\n".join(f"- {prop.value}" for prop in TankPhysicalProperty)
@@ -99,16 +98,16 @@ class ReadResults():
         path = self.output_results_path.with_suffix(".pdf")
 
         with PdfPages(path) as pdf:
-            for name, evolution in self.requested_variables.items():
-                tank_name, variable_name = name.rsplit("-", 1)
+            for (element_name, variable_name), evolution in self.requested_variables.items():
                 spec = PROPERTY_SPECS.get(variable_name)
+                
                 label = spec.label if spec else variable_name
                 ylabel = f"{variable_name} [{spec.unit}]" if spec else variable_name
 
                 fig, ax = plt.subplots(figsize=(10, 5))
                 try:
                     ax.plot(evolution.time, evolution.value, marker=".")
-                    ax.set_title(f"{tank_name} - {label}")
+                    ax.set_title(f"{element_name} - {label}")
                     ax.set_xlabel("Temps [s]")
                     ax.set_ylabel(ylabel)
                     ax.grid(True)
@@ -136,7 +135,7 @@ class ReadResults():
             )
     
             for ax, (name, evolution) in zip(axes.flat, self.requested_variables.items()):
-                element_name, variable_name = name.split("-")
+                element_name, variable_name = name
                 # element_name = element_name[:8]
                 specs = PROPERTY_SPECS[variable_name]
 

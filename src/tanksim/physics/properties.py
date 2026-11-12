@@ -37,6 +37,6 @@ PROPERTY_SPECS = {
     TankPhysicalProperty.VOLUME: PropertySpec("m³", "Liquid volume"),
     TankPhysicalProperty.LEVEL: PropertySpec("m", "Liquid level"),
     LinkPhysicalProperty.MASSFLOW: PropertySpec("kg/s", "Liquid massflow rate"),
-    LinkPhysicalProperty.VELOCITY: PropertySpec("kg/s", "Liquid velocity"),
+    LinkPhysicalProperty.VELOCITY: PropertySpec("m/s", "Liquid velocity"),
     LinkPhysicalProperty.DENSITY: PropertySpec("kg/m³", "Liquid density"),
 }

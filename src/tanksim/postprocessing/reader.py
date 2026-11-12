@@ -11,9 +11,15 @@ from tanksim.link import Link
 from tanksim.postprocessing.time_evolution import TimeEvolution
 
 class Reader(ABC):
-    @abstractmethod
     def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
-        pass
+        """Lit l'évolution temporelle d'une propriété.
+
+        Utilise une méthode spécifique si elle est définie dans le dictionnaire,
+        sinon lit directement la série stockée dans le fichier HDF5.
+        """
+        read_func = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
+        evolution = read_func(file, element_id)
+        return evolution
 
     def _read_stored_evolution(self, file: File, element_name: str, *, property: PhysicalProperty) -> TimeEvolution:
         key = f"{element_name}/{property}"
@@ -74,11 +80,6 @@ class TankReader(Reader):
             TankPhysicalProperty.VOLUME: self._read_volume,
         }
 
-    def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
-        read_func = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
-        evolution = read_func(file, element_id)
-        return evolution
-
     def _read_level(self, file: File, element_name: str) -> TimeEvolution:
         mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
         density = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.DENSITY}")
@@ -110,16 +111,6 @@ class LinkReader(Reader):
             # LinkPhysicalProperty.VOLUME: self._read_volume,
         }
 
-    def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
-        """Lit l'évolution temporelle d'une propriété.
-
-        Utilise une méthode spécifique si elle est définie dans le dictionnaire,
-        sinon lit directement la série stockée dans le fichier HDF5.
-        """
-        read_func = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
-        evolution = read_func(file, element_id)
-        return evolution
-    
     def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
         diameter = file[f"{element_name}/geometry"].attrs["diameter"]
         surface = np.pi * diameter**2.0 / 4.0
