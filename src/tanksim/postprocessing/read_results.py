@@ -11,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tanksim.physics import TankPhysicalProperty, PhysicalProperty, PROPERTY_SPECS
 from tanksim.tank import Tank
 from tanksim.link import Link
-from tanksim.postprocessing.reader import ELEMENT_TO_READER
+from tanksim.postprocessing.reader import ELEMENT_TO_READER, Reader
 from tanksim.postprocessing.time_evolution import TimeEvolution
 
 
@@ -36,13 +36,13 @@ def _get_element_name(element: Tank | Link) -> str:
     return element_func(element)
 
 
-def _get_element_reader(element: Tank | Link, variable) -> callable:
+def _get_element_reader(element: Tank | Link) -> Reader:
     reader_class = ELEMENT_TO_READER.get(type(element))
 
     if reader_class is None:
         raise TypeError(f"Unsupported type: {type(element).__name__}")
 
-    return reader_class().reader(variable)
+    return reader_class()
 
 
 class ReadResults():
@@ -62,10 +62,10 @@ class ReadResults():
             
             element_name = _get_element_name(element)
 
-            reader = _get_element_reader(element, variable)
+            reader = _get_element_reader(element)
 
             with h5py.File(self.output_results_path, "r") as file:
-                evolution = reader(file, element_name)
+                evolution = reader.read(file, element_name, variable)
 
             self.add_requested_variable(element_name, variable, evolution)
 

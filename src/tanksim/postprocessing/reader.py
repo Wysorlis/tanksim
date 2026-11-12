@@ -11,7 +11,7 @@ from tanksim.postprocessing.time_evolution import TimeEvolution
 
 class Reader(ABC):
     @abstractmethod
-    def reader(self):
+    def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
         pass
 
     def _read_stored_evolution(self, file: File, element_name: str, *, property: PhysicalProperty) -> TimeEvolution:
@@ -63,7 +63,7 @@ class KeyRequestError(KeyError):
             return str(f"\n{self.args[0]}")
         return super().__str__()
 
-    
+
 class TankReader(Reader):
     def __init__(self):
         super().__init__()
@@ -73,9 +73,10 @@ class TankReader(Reader):
             TankPhysicalProperty.VOLUME: self._read_volume,
         }
 
-    def reader(self, property: TankPhysicalProperty) -> callable:
-        reader = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
-        return reader
+    def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
+        read_func = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
+        evolution = read_func(file, element_id)
+        return evolution
 
     def _read_level(self, file: File, element_name: str) -> TimeEvolution:
         mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
@@ -104,20 +105,28 @@ class LinkReader(Reader):
         super().__init__()
 
         self._property_readers = {
-            LinkPhysicalProperty.MASSFLOW: self._read_massflow,
+            LinkPhysicalProperty.MASSFLOW: self._read_velocity,
             # LinkPhysicalProperty.VOLUME: self._read_volume,
         }
 
-    def reader(self, property: TankPhysicalProperty) -> callable:
-        reader = self._property_readers.get(property)
-        return reader
+    def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
+        """Lit l'évolution temporelle d'une propriété.
 
-    def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
-        massflow = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.MASSFLOW}")
+        Utilise une méthode spécifique si elle est définie dans le dictionnaire,
+        sinon lit directement la série stockée dans le fichier HDF5.
+        """
+        read_func = self._property_readers.get(property, partial(self._read_stored_evolution, property=property))
+        evolution = read_func(file, element_id)
+        return evolution
+    
+    def _read_velocity(self, file: File, element_name: str) -> TimeEvolution:
+        diameter = file[f"{element_name}/geometry"].attrs["diameter"]
+        
+        velocity = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.VELOCITY}")
 
         return TimeEvolution(
-            time=massflow["time"][:].tolist(),
-            value=massflow["values"][:].tolist(),
+            time=velocity["time"][:].tolist(),
+            value=velocity["values"][:].tolist(),
         )
         
 

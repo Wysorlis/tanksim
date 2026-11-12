@@ -1,14 +1,22 @@
 # coding: utf-8
 import numpy as np
+from dataclasses import dataclass
+
 from tanksim.tank import Port
 from tanksim.boundaries import Boundary
 from tanksim.constants import GRAVITY
 
 
+@dataclass
+class OrificeState:
+    liquid_massflow: float = 0.0  # kg/s
+    liquid_velocity: float = 0.0  # m/s
+    liquid_density : float = 1000.0  # kg/m³
+
+
 class Orifice:
     def __init__(self, diameter: float):
-        self._massflow = 0.0
-        self._velocity = 0.0
+        self.state = OrificeState()
 
         self.diameter = diameter
         self.section = np.pi * diameter**2.0 / 4.0
@@ -16,7 +24,7 @@ class Orifice:
     def update(self, dt, upstream: Port | Boundary, downstream: Port | Boundary) -> float:
         # Au moins une extrémité est un Port, vérifié par Link.
         reference_port = upstream if isinstance(upstream, Port) else downstream
-        density = reference_port.tank.liquid_density
+        self.state.liquid_density = reference_port.tank.liquid_density
         
         # Les deux extrémités exposent une pression
         delta_pressure = upstream.pressure - downstream.pressure
@@ -27,21 +35,22 @@ class Orifice:
             # La pression extérieure s'applique au port connecté.
             delta_z = 0.0
 
-        driving_velocity_squared = 2.0 * delta_pressure / density - 2.0 * GRAVITY * delta_z
+        driving_velocity_squared = 2.0 * delta_pressure / self.state.liquid_density - 2.0 * GRAVITY * delta_z
 
         # Empêcher un départ de liquide depuis un port dénoyé.
         donor = upstream if driving_velocity_squared >= 0.0 else downstream
         if isinstance(donor, Port) and not donor.is_submerged:
             driving_velocity_squared = 0.0
 
-        self._velocity = np.sign(driving_velocity_squared) * np.sqrt(abs(driving_velocity_squared))
+        self.state.liquid_velocity = np.sign(driving_velocity_squared) * np.sqrt(abs(driving_velocity_squared))
 
-        self._massflow = density * self.section * self._velocity
-        return self._massflow
+        self.state.liquid_massflow = self.state.liquid_density * self.section * self.state.liquid_velocity
+        return self.state.liquid_massflow
 
     @property
     def massflow(self) -> float:
-        return self._massflow
+        return self.state.liquid_massflow
+
 
 if __name__ == "__main__":
     sign = np.sign(2 - 1)

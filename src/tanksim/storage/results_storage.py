@@ -84,11 +84,22 @@ class ResultsStorage:
 
     def _save_link_state(self, simulation: Simulation, file: File):
         for link in simulation.links:
-            link_name = _get_link_name(link)
-            group = file.require_group(f"{link_name}/massflow")
-            value = link.massflow
-            self._append_sample(group, simulation.time, value)
+            if self._first_write and link.model.diameter is not None:
+                geometry_group = file.require_group(f"{link.name}/geometry")
 
+                geometry_group.attrs["diameter"] = link.model.diameter
+
+            # link_name = _get_link_name(link)
+            # group = file.require_group(f"{link_name}/massflow")
+            # value = link.massflow
+            # self._append_sample(group, simulation.time, value)
+
+            for field in fields(link.model.state):
+                group = file.require_group(f"{link.name}/{field.name}")
+
+                value = getattr(link.model.state, field.name)
+
+                self._append_sample(group, simulation.time, value)
             # [TODO: Si on veut généraliser et qu'on veut mettre plusieurs grandeurs (STATE) pour le link]
             # for field in fields(link.state):
             #     group = file.require_group(f"{link.name}/{field.name}")
