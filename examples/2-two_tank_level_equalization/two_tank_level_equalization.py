@@ -4,7 +4,8 @@ from pathlib import Path
 from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.link import Link
-from tanksim.postprocessing import ReadResults, PhysicalProperty
+from tanksim.postprocessing import ReadResults
+from tanksim.physics import TankPhysicalProperty, LinkPhysicalProperty
 from tanksim.simulation import Simulation
 
 def main():
@@ -17,12 +18,12 @@ def main():
     tank_b.set_level(level=0.8)
     
     connection = Link(
+        name="connection",
         upstream=Port(tank_a, 0.0),
         downstream=Port(tank_b, 0.0),
         model=Orifice(diameter=100.0e-3),
         align_ports=True,
     )
-
 
     simulation = Simulation()
     simulation.add_tank(tank_a)
@@ -60,10 +61,11 @@ def main():
         dt = simulation.step()
 
     results = ReadResults()
-    results.add_time_evolution(tank_a.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank_a.name, PhysicalProperty.LEVEL)
-    results.add_time_evolution(tank_b.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank_b.name, PhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_a, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank_a, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_b, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank_b, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(connection, LinkPhysicalProperty.MASSFLOW)
     results.show()
 
     results.save_pdf()

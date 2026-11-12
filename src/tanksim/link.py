@@ -6,7 +6,8 @@ from tanksim.boundaries import Boundary
 
 
 class Link:
-    def __init__(self, upstream: Port | Boundary, downstream: Port | Boundary, model: Orifice, align_ports: bool = False,):
+    def __init__(self, name: str, upstream: Port | Boundary, downstream: Port | Boundary, model: Orifice, align_ports: bool = False):
+        self.name = name
         self.upstream = upstream
         self.downstream = downstream
         self.model = model

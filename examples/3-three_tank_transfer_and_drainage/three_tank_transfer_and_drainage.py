@@ -5,7 +5,8 @@ from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
 from tanksim.link import Link
-from tanksim.postprocessing import ReadResults, PhysicalProperty
+from tanksim.postprocessing import ReadResults
+from tanksim.physics import TankPhysicalProperty, LinkPhysicalProperty
 from tanksim.simulation import Simulation
 
 def main():
@@ -22,6 +23,7 @@ def main():
     tank_c.set_level(level=0.75)
     
     connection = Link(
+        name="connection",
         upstream=Port(tank_a, 0.2),
         downstream=Port(tank_b, 0.0),
         model=Orifice(diameter=100.0e-3),
@@ -29,6 +31,7 @@ def main():
     )
 
     connection2 = Link(
+        name="connection2",
         upstream=Port(tank_b, 0.0),
         downstream=Port(tank_c, 2.0),
         model=Orifice(diameter=100.0e-3),
@@ -36,6 +39,7 @@ def main():
     )
 
     connection3 = Link(
+        name="connection3",
         upstream=Port(tank_c, 0.0),
         downstream=Atmosphere(),
         model=Orifice(diameter=400.0e-3),
@@ -89,12 +93,15 @@ def main():
         dt = simulation.step()
 
     results = ReadResults()
-    results.add_time_evolution(tank_a.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank_a.name, PhysicalProperty.LEVEL)
-    results.add_time_evolution(tank_b.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank_b.name, PhysicalProperty.LEVEL)
-    results.add_time_evolution(tank_c.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank_c.name, PhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_a, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank_a, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_b, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank_b, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(tank_c, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank_c, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(connection, LinkPhysicalProperty.MASSFLOW)
+    results.add_time_evolution(connection2, LinkPhysicalProperty.MASSFLOW)
+    results.add_time_evolution(connection3 ,LinkPhysicalProperty.MASSFLOW)
     results.show()
 
     results.save_pdf()

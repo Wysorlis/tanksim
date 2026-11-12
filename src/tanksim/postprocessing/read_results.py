@@ -1,25 +1,48 @@
 # coding: utf-8
 import __main__
 import h5py
-from h5py import Group
 import math
 import matplotlib.pyplot as plt
 from pathlib import Path
-from dataclasses import dataclass, field
 from functools import partial
-from difflib import get_close_matches
+
 from matplotlib.backends.backend_pdf import PdfPages
 
-from tanksim.physics import PhysicalProperty, PROPERTY_SPECS
+from tanksim.physics import TankPhysicalProperty, PhysicalProperty, PROPERTY_SPECS
+from tanksim.tank import Tank
+from tanksim.link import Link
+from tanksim.postprocessing.reader import ELEMENT_TO_READER
+from tanksim.postprocessing.time_evolution import TimeEvolution
 
-@dataclass
-class TimeEvolution:
-    time: list[float] = field(default_factory=list)
-    value: list[float] = field(default_factory=list)
 
-    def append(self, new_time: float, new_value: float):
-        self.time.append(new_time)
-        self.value.append(new_value)
+def _get_tank_name(tank: Tank) -> str:
+    return tank.name
+
+def _get_link_name(link: Link) -> str:
+    # return f"link_{type(link.upstream)}_to_{type(link.downstream)}_with_{type(link.model)}_{link.model.diameter}"
+    return link.name
+
+ELEMENT_TO_NAME = {
+    Tank: _get_tank_name,
+    Link: _get_link_name,
+}
+
+def _get_element_name(element: Tank | Link) -> str:
+    element_func = ELEMENT_TO_NAME.get(type(element))
+
+    if element_func is None:
+        raise TypeError(f"Unsupported type: {type(element).__name__}")
+
+    return element_func(element)
+
+
+def _get_element_reader(element: Tank | Link, variable) -> callable:
+    reader_class = ELEMENT_TO_READER.get(type(element))
+
+    if reader_class is None:
+        raise TypeError(f"Unsupported type: {type(element).__name__}")
+
+    return reader_class().reader(variable)
 
 
 class ReadResults():
@@ -29,33 +52,28 @@ class ReadResults():
 
         self.requested_variables = {}
 
-        self._derived_readers = {
-            PhysicalProperty.LEVEL: self._read_level,
-            PhysicalProperty.VOLUME: self._read_volume,
-        }
-        
-    def add_time_evolution(self, element_name: str, variable: str | PhysicalProperty):
-        if not self.output_results_path.is_file():
-            raise FileNotFoundError(
-                f"\nNo results file at {self.output_results_path!r}.\n"
-                "Run the simulation with state recording enabled.\n" \
-                "Consider using 'simulation.enable_state_recording(interval: float)'."
-            )
+    def add_time_evolution(self, element, variable: str | PhysicalProperty):
+            if not self.output_results_path.is_file():
+                raise FileNotFoundError(
+                    f"\nNo results file at {self.output_results_path!r}.\n"
+                    "Run the simulation with state recording enabled.\n" \
+                    "Consider using 'simulation.enable_state_recording(interval: float)'."
+                )
+            
+            element_name = _get_element_name(element)
 
-        read_func_with_name = partial(self._read_stored_evolution, variable=variable)
+            reader = _get_element_reader(element, variable)
 
-        reader = self._derived_readers.get(variable, read_func_with_name)
+            with h5py.File(self.output_results_path, "r") as file:
+                evolution = reader(file, element_name)
 
-        with h5py.File(self.output_results_path, "r") as file:
-            evolution = reader(file, element_name)
-
-        self.add_requested_variable(element_name, variable, evolution)
+            self.add_requested_variable(element_name, variable, evolution)
 
     def add_requested_variable(self, name: str, variable: str | PhysicalProperty, requested_evolution: TimeEvolution):
         key_to_store = f"{name}-{variable}"
 
         if key_to_store in self.requested_variables.keys():
-            known_properties = "\n".join(f"- {prop.value}" for prop in PhysicalProperty)
+            known_properties = "\n".join(f"- {prop.value}" for prop in TankPhysicalProperty)
 
             raise DuplicateRequestError(
                 f"Cannot request {variable!r} under the name {name!r}.\n"
@@ -65,14 +83,6 @@ class ReadResults():
         
         self.requested_variables[key_to_store] = requested_evolution
 
-    def _read_stored_evolution(self, file: h5py.File, element_name: str, *, variable: str) -> TimeEvolution:
-        key = f"{element_name}/{variable}"
-        group = self._get_series_group(file, f"{key}")
-
-        return TimeEvolution(
-            time=group["time"][:].tolist(),
-            value=group["values"][:].tolist(),
-        )
 
     def save_pdf(self) -> Path:
         if not self.requested_variables:
@@ -118,11 +128,12 @@ class ReadResults():
             )
     
             for ax, (name, evolution) in zip(axes.flat, self.requested_variables.items()):
-                tank_name, variable_name = name.split("-")
-                specs = PROPERTY_SPECS[PhysicalProperty(variable_name)]
+                element_name, variable_name = name.split("-")
+                # element_name = element_name[:8]
+                specs = PROPERTY_SPECS[variable_name]
 
                 ax.plot(evolution.time, evolution.value, marker=".")
-                ax.set_title(f"{tank_name} - {specs.label}")
+                ax.set_title(f"{element_name} - {specs.label}")
                 ax.set_xlabel("Temps [s]")
                 ax.set_ylabel(f"{variable_name} [{specs.unit}]")
                 ax.grid(True)
@@ -134,57 +145,6 @@ class ReadResults():
             fig.tight_layout()
             plt.show()
 
-    def _get_series_group(self, file: h5py.File, key: str) -> Group:
-        group = file.get(key)
-
-        if isinstance(group, Group) and "time" in group and "values" in group:
-            return group
-    
-        available = self._list_series_paths(file)
-        closest_matches = get_close_matches(key, available, n=3)
-
-        message = f"Requested variable {key!r} not found."
-        if closest_matches:
-            message += f"\nClosest matches: {', '.join(closest_matches)}."
-        else:
-            message += "\nNo close match found."
-        raise KeyRequestError(message)
-
-    def _read_level(self, file: h5py.File, element_name: str) -> TimeEvolution:
-        mass = self._get_series_group(file, f"{element_name}/{PhysicalProperty.MASS}")
-        density = self._get_series_group(file, f"{element_name}/{PhysicalProperty.DENSITY}")
-        surface = file[f"{element_name}/geometry"].attrs["surface"]
-
-        levels = mass["values"][:] / (density["values"][:] * surface)
-
-        return TimeEvolution(
-            time=mass["time"][:].tolist(),
-            value=levels.tolist(),
-        )
-    
-    def _read_volume(self, file: h5py.File, element_name: str) -> TimeEvolution:
-        mass = self._get_series_group(file, f"{element_name}/{PhysicalProperty.MASS}")
-        density = self._get_series_group(file, f"{element_name}/{PhysicalProperty.DENSITY}")
-        volume = mass["values"][:] / density["values"][:] 
-
-        return TimeEvolution(
-            time=mass["time"][:].tolist(),
-            value=volume.tolist(),
-        )
-        
-    @staticmethod
-    def _list_series_paths(file: h5py.File) -> list[str]:
-        paths = []
-
-        for element, element_group in file.items():
-            if not isinstance(element_group, Group):
-                continue
-
-            for name, series in element_group.items():
-                if isinstance(series, Group) and "time" in series and "values" in series:
-                    paths.append(f"{element}/{name}")
-
-        return paths
 
 class DuplicateRequestError(KeyError):
     def __str__(self) -> str:
@@ -192,10 +152,27 @@ class DuplicateRequestError(KeyError):
             return str(f"\n{self.args[0]}")
         return super().__str__()
 
-class KeyRequestError(KeyError):
-    def __str__(self) -> str:
-        if len(self.args) == 1:
-            return str(f"\n{self.args[0]}")
-        return super().__str__()
+    # def _read_level(self, file: h5py.File, element_name: str) -> TimeEvolution:
+    #     mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
+    #     density = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.DENSITY}")
+    #     surface = file[f"{element_name}/geometry"].attrs["surface"]
+
+    #     levels = mass["values"][:] / (density["values"][:] * surface)
+
+    #     return TimeEvolution(
+    #         time=mass["time"][:].tolist(),
+    #         value=levels.tolist(),
+    #     )
     
+    # def _read_volume(self, file: h5py.File, element_name: str) -> TimeEvolution:
+    #     mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
+    #     density = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.DENSITY}")
+    #     volume = mass["values"][:] / density["values"][:] 
+
+    #     return TimeEvolution(
+    #         time=mass["time"][:].tolist(),
+    #         value=volume.tolist(),
+    #     )
+
+
     

@@ -5,7 +5,8 @@ from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
 from tanksim.link import Link
-from tanksim.postprocessing import ReadResults, PhysicalProperty
+from tanksim.postprocessing import ReadResults
+from tanksim.physics import TankPhysicalProperty, LinkPhysicalProperty
 from tanksim.simulation import Simulation
 
 def main():
@@ -14,6 +15,7 @@ def main():
     tank.set_level(level=0.8)
     
     connection = Link(
+        name="connection",
         upstream=Port(tank, 0.0),
         downstream=Atmosphere(),
         model=Orifice(diameter=100.0e-3),
@@ -53,10 +55,10 @@ def main():
         dt = simulation.step()
 
     results = ReadResults()
-    results.add_time_evolution(tank.name, PhysicalProperty.MASS)
-    results.add_time_evolution(tank.name, PhysicalProperty.DENSITY)
-    results.add_time_evolution(tank.name, PhysicalProperty.LEVEL)
-    results.add_time_evolution(tank.name, PhysicalProperty.VOLUME)
+    results.add_time_evolution(tank, TankPhysicalProperty.MASS)
+    results.add_time_evolution(tank, TankPhysicalProperty.LEVEL)
+    results.add_time_evolution(connection, LinkPhysicalProperty.MASSFLOW)
+    # results.add_time_evolution(tank, TankPhysicalProperty.VOLUME)
     results.show()
 
     results.save_pdf()

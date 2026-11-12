@@ -29,6 +29,7 @@ def test_mass_loss_matches_total_outflow_through_two_orifices():
     tank.set_level(0.5)
     connections = [
         Link(
+            name=f"connection_{diameter}",
             upstream=Port(tank=tank, height=0.0),
             downstream=Atmosphere(),
             model=Orifice(diameter=diameter),

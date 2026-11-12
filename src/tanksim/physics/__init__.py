@@ -1,3 +1,3 @@
-from .properties import PhysicalProperty, PROPERTY_SPECS
+from .properties import PhysicalProperty, TankPhysicalProperty, LinkPhysicalProperty, PROPERTY_SPECS
 
-__all__ = ["PhysicalProperty", "PROPERTY_SPECS"]
+__all__ = ["PhysicalProperty", "TankPhysicalProperty", "LinkPhysicalProperty", "PROPERTY_SPECS"]

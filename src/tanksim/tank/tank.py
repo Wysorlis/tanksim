@@ -36,7 +36,7 @@ class Tank:
         self.state.liquid_mass = max(0.0, self.state.liquid_mass + net_massflow * dt)
 
     def show(self):
-        print(f"+++++++ TANK +++++++")
+        print(f"+++++++ {self.name} +++++++")
         print(f"| mliq             = {self.liquid_mass:<3.2f} kg")
         print(f"| Vliq             = {self.liquid_volume:<3.2f} m3")
         print(f"| level            = {self.level:<3.2f} m")

@@ -10,11 +10,13 @@ if TYPE_CHECKING:
     from tanksim.simulation import Simulation
 
 import h5py
-from h5py import Group
+from h5py import Group, File
 
 from dataclasses import fields
 
-
+def _get_link_name(link) -> str:
+    # return f"link_{type(link.upstream)}_to_{type(link.downstream)}_with_{type(link.model)}_{link.model.diameter}"
+    return link.name
 
 class ResultsStorage:
     def __init__(self):
@@ -59,22 +61,41 @@ class ResultsStorage:
         mode = "w" if self._first_write else "a"
 
         with h5py.File(self.output_results_path, mode) as file:
-            for tank in simulation.tanks:
-                if self._first_write and tank.geometry is not None:
-                    geometry_group = file.require_group(f"{tank.name}/geometry")
-
-                    for field in fields(tank.geometry):
-                        geometry_group.attrs[field.name] = getattr(tank.geometry, field.name)
-
-                for field in fields(tank.state):
-                    group = file.require_group(f"{tank.name}/{field.name}")
-
-                    value = getattr(tank.state, field.name)
-
-                    self._append_sample(group, simulation.time, value)
+            self._save_tank_state(simulation, file)
+            self._save_link_state(simulation, file)
 
         self._first_write = False
         self.next_record_time += self.dt_record_time
+
+    def _save_tank_state(self, simulation: Simulation, file: File):
+        for tank in simulation.tanks:
+            if self._first_write and tank.geometry is not None:
+                geometry_group = file.require_group(f"{tank.name}/geometry")
+
+                for field in fields(tank.geometry):
+                    geometry_group.attrs[field.name] = getattr(tank.geometry, field.name)
+
+            for field in fields(tank.state):
+                group = file.require_group(f"{tank.name}/{field.name}")
+
+                value = getattr(tank.state, field.name)
+
+                self._append_sample(group, simulation.time, value)
+
+    def _save_link_state(self, simulation: Simulation, file: File):
+        for link in simulation.links:
+            link_name = _get_link_name(link)
+            group = file.require_group(f"{link_name}/massflow")
+            value = link.massflow
+            self._append_sample(group, simulation.time, value)
+
+            # [TODO: Si on veut généraliser et qu'on veut mettre plusieurs grandeurs (STATE) pour le link]
+            # for field in fields(link.state):
+            #     group = file.require_group(f"{link.name}/{field.name}")
+
+            #     value = getattr(link.state, field.name)
+
+            #     self._append_sample(group, simulation.time, value)
 
     def _append_sample(self, group: Group, time: float, value: float) -> None:
         if "time" not in group:
