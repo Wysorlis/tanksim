@@ -70,6 +70,10 @@ class ResultsStorage:
     def _save_tank_state(self, simulation: Simulation, file: File):
         for tank in simulation.tanks:
             if self._first_write and tank.geometry is not None:
+                type_group = file.require_group(f"{tank.name}/type")
+                type_group.attrs["class_name"] = type(tank).__name__
+
+
                 geometry_group = file.require_group(f"{tank.name}/geometry")
 
                 for field in fields(tank.geometry):
@@ -85,8 +89,10 @@ class ResultsStorage:
     def _save_link_state(self, simulation: Simulation, file: File):
         for link in simulation.links:
             if self._first_write and link.model.diameter is not None:
-                geometry_group = file.require_group(f"{link.name}/geometry")
+                type_group = file.require_group(f"{link.name}/type")
+                type_group.attrs["class_name"] = type(link).__name__
 
+                geometry_group = file.require_group(f"{link.name}/geometry")
                 geometry_group.attrs["diameter"] = link.model.diameter
 
             # link_name = _get_link_name(link)

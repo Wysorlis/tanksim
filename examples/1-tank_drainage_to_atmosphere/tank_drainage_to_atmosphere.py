@@ -58,6 +58,8 @@ def main():
     results.add_time_evolution(tank, TankPhysicalProperty.MASS)
     results.add_time_evolution(tank, TankPhysicalProperty.LEVEL)
     results.add_time_evolution(connection, LinkPhysicalProperty.MASSFLOW)
+    results.add_time_evolution(connection, LinkPhysicalProperty.VELOCITY)
+    results.add_time_evolution(connection, LinkPhysicalProperty.DENSITY)
     # results.add_time_evolution(tank, TankPhysicalProperty.VOLUME)
     results.show()
 

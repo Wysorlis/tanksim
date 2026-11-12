@@ -9,7 +9,6 @@ from tanksim.constants import GRAVITY
 
 @dataclass
 class OrificeState:
-    liquid_massflow: float = 0.0  # kg/s
     liquid_velocity: float = 0.0  # m/s
     liquid_density : float = 1000.0  # kg/m³
 
@@ -44,12 +43,12 @@ class Orifice:
 
         self.state.liquid_velocity = np.sign(driving_velocity_squared) * np.sqrt(abs(driving_velocity_squared))
 
-        self.state.liquid_massflow = self.state.liquid_density * self.section * self.state.liquid_velocity
-        return self.state.liquid_massflow
+        self.liquid_massflow = self.state.liquid_density * self.section * self.state.liquid_velocity
+        return self.liquid_massflow
 
     @property
     def massflow(self) -> float:
-        return self.state.liquid_massflow
+        return self.state.liquid_density * self.section * self.state.liquid_velocity
 
 
 if __name__ == "__main__":

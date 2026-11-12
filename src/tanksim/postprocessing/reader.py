@@ -1,5 +1,6 @@
 # coding: utf-8
 from abc import ABC, abstractmethod
+import numpy as np
 from h5py import File, Group
 from functools import partial
 from difflib import get_close_matches
@@ -105,7 +106,7 @@ class LinkReader(Reader):
         super().__init__()
 
         self._property_readers = {
-            LinkPhysicalProperty.MASSFLOW: self._read_velocity,
+            LinkPhysicalProperty.MASSFLOW: self._read_massflow,
             # LinkPhysicalProperty.VOLUME: self._read_volume,
         }
 
@@ -119,14 +120,18 @@ class LinkReader(Reader):
         evolution = read_func(file, element_id)
         return evolution
     
-    def _read_velocity(self, file: File, element_name: str) -> TimeEvolution:
+    def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
         diameter = file[f"{element_name}/geometry"].attrs["diameter"]
+        surface = np.pi * diameter**2.0 / 4.0
         
         velocity = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.VELOCITY}")
+        density = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.DENSITY}")        
+
+        massflow = density["values"][:] * surface * velocity["values"][:]
 
         return TimeEvolution(
             time=velocity["time"][:].tolist(),
-            value=velocity["values"][:].tolist(),
+            value=massflow.tolist(),
         )
         
 

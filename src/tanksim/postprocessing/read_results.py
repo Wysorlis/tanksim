@@ -14,41 +14,49 @@ from tanksim.link import Link
 from tanksim.postprocessing.reader import ELEMENT_TO_READER, Reader
 from tanksim.postprocessing.time_evolution import TimeEvolution
 
+type Element = Tank | Link
 
-def _get_tank_name(tank: Tank) -> str:
-    return tank.name
+def _get_element_name(element: str | Element) -> str:
+    if isinstance(element, str):
+        return element
 
-def _get_link_name(link: Link) -> str:
-    # return f"link_{type(link.upstream)}_to_{type(link.downstream)}_with_{type(link.model)}_{link.model.diameter}"
-    return link.name
+    if isinstance(element, (Tank, Link)):
+        return element.name
 
-ELEMENT_TO_NAME = {
-    Tank: _get_tank_name,
-    Link: _get_link_name,
+    raise TypeError(f"Unsupported type: {type(element).__name__}")
+
+StrToClass = {
+    "Tank": Tank,
+    "Link": Link,
 }
 
-def _get_element_name(element: Tank | Link) -> str:
-    element_func = ELEMENT_TO_NAME.get(type(element))
+def _get_element_reader(path: Path, element: str | Element) -> Reader:
+    if isinstance(element, str):
+        with h5py.File(path, "r") as file:
+            if element not in file:
+                raise KeyError(f"Requested element name {element!r} not found.")
+            
+            class_name = file[f"{element}/type"].attrs["class_name"]
 
-    if element_func is None:
-        raise TypeError(f"Unsupported type: {type(element).__name__}")
+        element_type = StrToClass.get(class_name)
 
-    return element_func(element)
+        if element_type is None:
+            raise TypeError(f"Unsupported stored class: {class_name!r}")
+    else:
+        element_type = type(element)
 
-
-def _get_element_reader(element: Tank | Link) -> Reader:
-    reader_class = ELEMENT_TO_READER.get(type(element))
+    reader_class = ELEMENT_TO_READER.get(element_type)
 
     if reader_class is None:
-        raise TypeError(f"Unsupported type: {type(element).__name__}")
+        raise TypeError(f"Unsupported type: {type(element_type).__name__}")
 
     return reader_class()
 
 
 class ReadResults():
-    def __init__(self):
+    def __init__(self, path: Path=None):
         script_file = getattr(__main__, "__file__", None)
-        self.output_results_path = Path(script_file).resolve().with_name("results.h5")
+        self.output_results_path = Path(script_file).resolve().with_name("results.h5") if path is None else path
 
         self.requested_variables = {}
 
@@ -62,7 +70,7 @@ class ReadResults():
             
             element_name = _get_element_name(element)
 
-            reader = _get_element_reader(element)
+            reader = _get_element_reader(self.output_results_path, element)
 
             with h5py.File(self.output_results_path, "r") as file:
                 evolution = reader.read(file, element_name, variable)
@@ -151,28 +159,4 @@ class DuplicateRequestError(KeyError):
         if len(self.args) == 1:
             return str(f"\n{self.args[0]}")
         return super().__str__()
-
-    # def _read_level(self, file: h5py.File, element_name: str) -> TimeEvolution:
-    #     mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
-    #     density = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.DENSITY}")
-    #     surface = file[f"{element_name}/geometry"].attrs["surface"]
-
-    #     levels = mass["values"][:] / (density["values"][:] * surface)
-
-    #     return TimeEvolution(
-    #         time=mass["time"][:].tolist(),
-    #         value=levels.tolist(),
-    #     )
-    
-    # def _read_volume(self, file: h5py.File, element_name: str) -> TimeEvolution:
-    #     mass = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.MASS}")
-    #     density = self._get_series_group(file, f"{element_name}/{TankPhysicalProperty.DENSITY}")
-    #     volume = mass["values"][:] / density["values"][:] 
-
-    #     return TimeEvolution(
-    #         time=mass["time"][:].tolist(),
-    #         value=volume.tolist(),
-    #     )
-
-
     
