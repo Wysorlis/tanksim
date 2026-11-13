@@ -7,6 +7,7 @@ from tanksim.tank import Port
 
 from tanksim.link.link_state import LinkState
 
+
 class FlowModel(ABC):
     @abstractmethod
     def compute(self, dt: float, upstream: Port | Boundary, downstream: Port | Boundary) -> LinkState:

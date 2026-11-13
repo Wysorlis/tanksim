@@ -9,6 +9,8 @@ from tanksim.physics import PhysicalProperty, TankPhysicalProperty, LinkPhysical
 from tanksim.tank import Tank
 from tanksim.link.link import Link
 from tanksim.postprocessing.time_evolution import TimeEvolution
+from tanksim.exceptions import KeyRequestError
+
 
 class Reader(ABC):
     def read(self, file: File, element_id: str, property: PhysicalProperty) -> TimeEvolution:
@@ -45,7 +47,6 @@ class Reader(ABC):
         else:
             message += "\nNo close match found."
         raise KeyRequestError(message)
-
             
     @staticmethod
     def _list_series_paths(file: File) -> list[str]:
@@ -61,14 +62,6 @@ class Reader(ABC):
                     paths.append(f"{element}/{name}")
 
         return paths
-
-
-
-class KeyRequestError(KeyError):
-    def __str__(self) -> str:
-        if len(self.args) == 1:
-            return str(f"\n{self.args[0]}")
-        return super().__str__()
 
 
 class TankReader(Reader):
@@ -101,6 +94,7 @@ class TankReader(Reader):
             time=mass["time"][:].tolist(),
             value=volume.tolist(),
         )
+
 
 class LinkReader(Reader):
     def __init__(self):

@@ -37,12 +37,61 @@ class Simulation:
             raise ValueError(f"Element name {name!r} is already in use.")
     
     def step(self):
-        net_massflows = {tank: 0.0 for tank in self.tanks}
-
-        # Calculer les débits et accumuler les bilans
+        # 1. Calculer les écoulements proposés par les modèles.
         for link in self.links:
             link.update(self.dt)
+
+        # 2. Limiter les prélèvements aux masses disponibles.
+        net_massflows = self._limit_outflows()
+
+        # 3. Construire les débits corrigés.
+        net_massflows = self._compute_net_massflows()
+
+        # 4. Mettre à jour les tanks.
+        for tank in self.tanks:
+            tank.update(
+                dt=self.dt,
+                net_massflow=net_massflows[tank]
+            )
+
+        # 5. Avancer le temps
+        self.time += self.dt
+
+        # 6. Enregistrer les résultats
+        self.results_storage.save_state(self)
+
+        return self.dt
+
+    def _limit_outflows(self):
+        requested_mass = {tank: 0.0 for tank in self.tanks}
+
+        # Masse totale demandée à chaque tank, toutes sorties confondues.
+        for link in self.links:
             massflow = link.massflow
+            donor = link.upstream if massflow >= 0.0 else link.downstream
+
+            if isinstance(donor, Port):
+                requested_mass[donor.tank] += abs(massflow) * self.dt
+
+        factors = {
+            tank: min(1.0, tank.liquid_mass / requested)
+            if requested > 0.0 else 1.0
+            for tank, requested in requested_mass.items()
+        }
+
+        # Même facteur pour toutes les sorties d'un tank.
+        for link in self.links:
+            massflow = link.massflow
+            donor = link.upstream if massflow >= 0.0 else link.downstream
+
+            if isinstance(donor, Port):
+                link.state.liquid_velocity *= factors[donor.tank]
+
+    def _compute_net_massflows(self) -> dict[Tank, float]:
+        net_massflows = {tank: 0.0 for tank in self.tanks}
+
+        for link in self.links:
+            massflow = link.massflow  # Débit après limitation.
 
             if isinstance(link.upstream, Port):
                 net_massflows[link.upstream.tank] -= massflow
@@ -50,21 +99,8 @@ class Simulation:
             if isinstance(link.downstream, Port):
                 net_massflows[link.downstream.tank] += massflow
 
-        # Appliquer les bilans à tous les tanks
-        for tank in self.tanks:
-            tank.update(
-                dt=self.dt,
-                net_massflow=net_massflows[tank]
-            )
+        return net_massflows
 
-        # Updating time
-        self.time += self.dt
-
-        # Saving results
-        self.results_storage.save_state(self)
-
-        return self.dt
-    
     def setup(self, tolerance: float = 1e-9):
         graph = {tank: [] for tank in self.tanks}
 

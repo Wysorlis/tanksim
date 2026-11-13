@@ -606,6 +606,7 @@ source = { editable = "." }
 dependencies = [
     { name = "h5py" },
     { name = "matplotlib" },
+    { name = "numpy" },
 ]
 
 [package.dev-dependencies]
@@ -617,6 +618,7 @@ dev = [
 requires-dist = [
     { name = "h5py", specifier = ">=3.16.0" },
     { name = "matplotlib" },
+    { name = "numpy", specifier = ">=2.5.4" },
 ]
 
 [package.metadata.requires-dev]

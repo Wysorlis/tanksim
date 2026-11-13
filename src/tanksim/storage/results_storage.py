@@ -30,7 +30,31 @@ class ResultsStorage:
         self.next_record_time = 0.0
         self.dt_record_time = 5.0
 
-    def initialise_dataset_time_series(self, group: Group):
+    def enable(self, interval: float):
+        if interval <= 0:
+            raise ValueError("Recording interval must be positive.")
+
+        self.dt_record_time = interval
+        self._is_recording = True
+        
+    def save_state(self, simulation: Simulation):
+        if not self._is_recording or simulation.time < self.next_record_time:
+            return
+        
+        mode = "w" if self._first_write else "a"
+
+        with h5py.File(self.output_results_path, mode) as file:
+            if self._first_write:
+                self._initialise_tanks(simulation, file)
+                self._initialise_links(simulation, file)
+
+            self._append_tank_state(simulation, file)
+            self._append_link_state(simulation, file)
+
+        self._first_write = False
+        self.next_record_time += self.dt_record_time
+
+    def _initialise_dataset_time_series(self, group: Group):
         times = group.create_dataset(
             "time",
             shape=(0,),
@@ -49,60 +73,51 @@ class ResultsStorage:
             compression_opts=4,
         )
         return times, values
-
     
-    def save_state(self, simulation: Simulation):
-        if not self._is_recording or simulation.time < self.next_record_time:
-            return
-        
-        mode = "w" if self._first_write else "a"
-
-        with h5py.File(self.output_results_path, mode) as file:
-            self._save_tank_state(simulation, file)
-            self._save_link_state(simulation, file)
-
-        self._first_write = False
-        self.next_record_time += self.dt_record_time
-
-    def _save_tank_state(self, simulation: Simulation, file: File):
+    def _initialise_tanks(self, simulation: Simulation, file: File):
         for tank in simulation.tanks:
-            if self._first_write and tank.geometry is not None:
-                type_group = file.require_group(f"{tank.name}/type")
-                type_group.attrs["class_name"] = type(tank).__name__
+            type_group = file.create_group(f"{tank.name}/type")
+            type_group.attrs["class_name"] = type(tank).__name__
 
-
-                geometry_group = file.require_group(f"{tank.name}/geometry")
+            if tank.geometry is not None:
+                geometry_group = file.create_group(f"{tank.name}/geometry")
 
                 for field in fields(tank.geometry):
                     geometry_group.attrs[field.name] = getattr(tank.geometry, field.name)
 
             for field in fields(tank.state):
-                group = file.require_group(f"{tank.name}/{field.name}")
+                group = file.create_group(f"{tank.name}/{field.name}")
+                self._initialise_dataset_time_series(group)
 
+    def _append_tank_state(self, simulation: Simulation, file: File):
+        for tank in simulation.tanks:
+            for field in fields(tank.state):
+                group = file[f"{tank.name}/{field.name}"]
                 value = getattr(tank.state, field.name)
 
                 self._append_sample(group, simulation.time, value)
 
-    def _save_link_state(self, simulation: Simulation, file: File):
-        for link in simulation.links:
-            if self._first_write and link.model.diameter is not None:
-                type_group = file.require_group(f"{link.name}/type")
-                type_group.attrs["class_name"] = type(link).__name__
+    def _initialise_links(self, simulation: Simulation, file: File):
+         for link in simulation.links:
+            type_group = file.create_group(f"{link.name}/type")
+            type_group.attrs["class_name"] = type(link).__name__
 
-                geometry_group = file.require_group(f"{link.name}/geometry")
-                geometry_group.attrs["section"] = link.model.section
+            geometry_group = file.create_group(f"{link.name}/geometry")
+            geometry_group.attrs["section"] = link.model.section
 
             for field in fields(link.state):
-                group = file.require_group(f"{link.name}/{field.name}")
+                group = file.create_group(f"{link.name}/{field.name}")
+                self._initialise_dataset_time_series(group)
 
+    def _append_link_state(self, simulation: Simulation, file: File):
+        for link in simulation.links:
+            for field in fields(link.state):
+                group = file[f"{link.name}/{field.name}"]
                 value = getattr(link.state, field.name)
 
                 self._append_sample(group, simulation.time, value)
 
     def _append_sample(self, group: Group, time: float, value: float) -> None:
-        if "time" not in group:
-            self.initialise_dataset_time_series(group)
-
         times = group["time"]
         values = group["values"]
 
@@ -112,10 +127,3 @@ class ResultsStorage:
 
         times[index] = time
         values[index] = value
-
-    def enable(self, interval: float):
-        if interval <= 0:
-            raise ValueError("Recording interval must be positive.")
-
-        self.dt_record_time = interval
-        self._is_recording = True

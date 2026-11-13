@@ -7,12 +7,14 @@ from tanksim.link.link import Link
 class PhysicalProperty(StrEnum):
     pass
 
+
 class TankPhysicalProperty(PhysicalProperty):
     """Propriétés accessibles sur un tank"""
     MASS = "liquid_mass"
     DENSITY = "liquid_density"
     VOLUME = "liquid_volume"
     LEVEL = "level"
+
 
 class LinkPhysicalProperty(PhysicalProperty):
     """Propriétés accessibles sur un link"""
@@ -26,10 +28,12 @@ CLASS_TO_PROPERTY = {
     Link: LinkPhysicalProperty,
 }
 
+
 @dataclass(frozen=True)
 class PropertySpec:
     unit: str
     label: str
+
 
 PROPERTY_SPECS = {
     TankPhysicalProperty.DENSITY: PropertySpec("kg/m³", "Liquid density"),

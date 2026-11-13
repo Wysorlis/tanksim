@@ -13,6 +13,7 @@ from tanksim.tank import Tank
 from tanksim.link.link import Link
 from tanksim.postprocessing.reader import ELEMENT_TO_READER, Reader
 from tanksim.postprocessing.time_evolution import TimeEvolution
+from tanksim.exceptions import DuplicateRequestError
 
 type Element = Tank | Link
 
@@ -106,11 +107,7 @@ class ReadResults():
 
                 fig, ax = plt.subplots(figsize=(10, 5))
                 try:
-                    ax.plot(evolution.time, evolution.value, marker=".")
-                    ax.set_title(f"{element_name} - {label}")
-                    ax.set_xlabel("Temps [s]")
-                    ax.set_ylabel(ylabel)
-                    ax.grid(True)
+                    self._generate_plot_figure(ax, element_name, evolution)
 
                     fig.tight_layout()
                     pdf.savefig(fig)
@@ -135,15 +132,7 @@ class ReadResults():
             )
     
             for ax, (name, evolution) in zip(axes.flat, self.requested_variables.items()):
-                element_name, variable_name = name
-                # element_name = element_name[:8]
-                specs = PROPERTY_SPECS[variable_name]
-
-                ax.plot(evolution.time, evolution.value, marker=".")
-                ax.set_title(f"{element_name} - {specs.label}")
-                ax.set_xlabel("Temps [s]")
-                ax.set_ylabel(f"{variable_name} [{specs.unit}]")
-                ax.grid(True)
+                self._generate_plot_figure(ax, name, evolution)
     
             # Masquer les emplacements inutilisés.
             for ax in list(axes.flat)[count:]:
@@ -152,10 +141,12 @@ class ReadResults():
             fig.tight_layout()
             plt.show()
 
+    def _generate_plot_figure(self, ax, name, evolution):
+        element_name, variable_name = name
+        specs = PROPERTY_SPECS[variable_name]
 
-class DuplicateRequestError(KeyError):
-    def __str__(self) -> str:
-        if len(self.args) == 1:
-            return str(f"\n{self.args[0]}")
-        return super().__str__()
-    
+        ax.plot(evolution.time, evolution.value, marker=".")
+        ax.set_title(f"{element_name} - {specs.label}")
+        ax.set_xlabel("Temps [s]")
+        ax.set_ylabel(f"{variable_name} [{specs.unit}]")
+        ax.grid(True)

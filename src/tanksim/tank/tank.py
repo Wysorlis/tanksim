@@ -7,9 +7,6 @@ from tanksim.tank.geometry import Geometry
 from tanksim.tank.state import TankState
 from tanksim.constants import STANDARD_ATMOSPHERIC_PRESSURE
 
-if TYPE_CHECKING:
-    from tanksim.models.orifice import Orifice
-
 
 class Tank:
     def __init__(self, name: str):
@@ -20,8 +17,6 @@ class Tank:
 
         self.surface_pressure: float = STANDARD_ATMOSPHERIC_PRESSURE
         self.bottom_elevation: float | None = None
-
-        self.orifices: list[Orifice] = []
 
     def set_geometry(self, geometry: Geometry):
         self.geometry = geometry
@@ -40,8 +35,6 @@ class Tank:
         print(f"| mliq             = {self.liquid_mass:<3.2f} kg")
         print(f"| Vliq             = {self.liquid_volume:<3.2f} m3")
         print(f"| level            = {self.level:<3.2f} m")
-        for i, ori in enumerate(self.orifices):
-            print(f"| massflow (break n°{i}) = {ori.massflow:<3.2f} kg/s")
         print(f"++++++++++++++++++++")
 
     @property
