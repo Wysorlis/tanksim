@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 class Tank:
     def __init__(self, name: str):
-        self.name = name
+        self._name = name
         self.geometry = None
 
         self.state = TankState()
@@ -44,6 +44,10 @@ class Tank:
             print(f"| massflow (break n°{i}) = {ori.massflow:<3.2f} kg/s")
         print(f"++++++++++++++++++++")
 
+    @property
+    def name(self) -> str:
+        return self._name
+    
     @property
     def liquid_mass(self) -> float:
         return self.state.liquid_mass

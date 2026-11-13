@@ -4,7 +4,7 @@ from math import isclose
 from pathlib import Path
 
 from tanksim.tank import Tank, Port
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.storage.results_storage import ResultsStorage
 
 class Simulation:
@@ -25,11 +25,17 @@ class Simulation:
         self.results_storage = ResultsStorage()
 
     def add_tank(self, tank: Tank):
+        self._check_element_name(tank.name)
         self.tanks.append(tank)
 
     def add_link(self, link: Link):
+        self._check_element_name(link.name)
         self.links.append(link)
 
+    def _check_element_name(self, name: str):
+        if any(element.name == name for element in self.tanks + self.links):
+            raise ValueError(f"Element name {name!r} is already in use.")
+    
     def step(self):
         net_massflows = {tank: 0.0 for tank in self.tanks}
 

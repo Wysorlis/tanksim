@@ -1,7 +1,7 @@
 import pytest
 
 from tanksim.boundaries import Atmosphere
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.models.orifice import Orifice
 from tanksim.simulation import Simulation
 from tanksim.tank import Geometry, Port, Tank

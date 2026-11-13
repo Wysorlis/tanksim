@@ -14,9 +14,6 @@ from h5py import Group, File
 
 from dataclasses import fields
 
-def _get_link_name(link) -> str:
-    # return f"link_{type(link.upstream)}_to_{type(link.downstream)}_with_{type(link.model)}_{link.model.diameter}"
-    return link.name
 
 class ResultsStorage:
     def __init__(self):
@@ -93,26 +90,14 @@ class ResultsStorage:
                 type_group.attrs["class_name"] = type(link).__name__
 
                 geometry_group = file.require_group(f"{link.name}/geometry")
-                geometry_group.attrs["diameter"] = link.model.diameter
+                geometry_group.attrs["section"] = link.model.section
 
-            # link_name = _get_link_name(link)
-            # group = file.require_group(f"{link_name}/massflow")
-            # value = link.massflow
-            # self._append_sample(group, simulation.time, value)
-
-            for field in fields(link.model.state):
+            for field in fields(link.state):
                 group = file.require_group(f"{link.name}/{field.name}")
 
-                value = getattr(link.model.state, field.name)
+                value = getattr(link.state, field.name)
 
                 self._append_sample(group, simulation.time, value)
-            # [TODO: Si on veut généraliser et qu'on veut mettre plusieurs grandeurs (STATE) pour le link]
-            # for field in fields(link.state):
-            #     group = file.require_group(f"{link.name}/{field.name}")
-
-            #     value = getattr(link.state, field.name)
-
-            #     self._append_sample(group, simulation.time, value)
 
     def _append_sample(self, group: Group, time: float, value: float) -> None:
         if "time" not in group:

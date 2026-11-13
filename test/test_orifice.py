@@ -14,13 +14,13 @@ def test_orifice_has_no_flow_at_zero_head():
     tank.set_level(0.0)
     orifice = Orifice(diameter=0.01)
 
-    massflow = orifice.update(
+    state = orifice.compute(
         dt=0.1,
         upstream=Port(tank=tank, height=0.0),
         downstream=Atmosphere(),
     )
 
-    assert massflow == pytest.approx(0.0)
+    assert state.liquid_velocity == pytest.approx(0.0)
 
 
 def test_orifice_matches_torricelli_reference_case():
@@ -33,10 +33,10 @@ def test_orifice_matches_torricelli_reference_case():
     tank.set_level(2.0 / GRAVITY)
     orifice = Orifice(diameter=sqrt(4.0 * 0.001 / pi))
 
-    massflow = orifice.update(
+    state = orifice.compute(
         dt=0.1,
         upstream=Port(tank=tank, height=0.0),
         downstream=Atmosphere(),
     )
 
-    assert massflow == pytest.approx(2.0)
+    assert state.liquid_velocity == pytest.approx(2.0)

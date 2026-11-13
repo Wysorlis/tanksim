@@ -7,7 +7,7 @@ from difflib import get_close_matches
 
 from tanksim.physics import PhysicalProperty, TankPhysicalProperty, LinkPhysicalProperty, PROPERTY_SPECS
 from tanksim.tank import Tank
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.postprocessing.time_evolution import TimeEvolution
 
 class Reader(ABC):
@@ -112,13 +112,12 @@ class LinkReader(Reader):
         }
 
     def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
-        diameter = file[f"{element_name}/geometry"].attrs["diameter"]
-        surface = np.pi * diameter**2.0 / 4.0
+        section = file[f"{element_name}/geometry"].attrs["section"]
         
         velocity = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.VELOCITY}")
         density = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.DENSITY}")        
 
-        massflow = density["values"][:] * surface * velocity["values"][:]
+        massflow = density["values"][:] * section * velocity["values"][:]
 
         return TimeEvolution(
             time=velocity["time"][:].tolist(),

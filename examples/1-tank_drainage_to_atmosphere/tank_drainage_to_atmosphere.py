@@ -4,7 +4,7 @@ from pathlib import Path
 from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.postprocessing import ReadResults
 from tanksim.physics import TankPhysicalProperty, LinkPhysicalProperty
 from tanksim.simulation import Simulation
@@ -13,7 +13,7 @@ def main():
     tank = Tank("TANK_A")
     tank.set_geometry(Geometry(height=1.0, surface=2.5))
     tank.set_level(level=0.8)
-    
+
     connection = Link(
         name="connection",
         upstream=Port(tank, 0.0),

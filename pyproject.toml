@@ -24,6 +24,10 @@ dev = [
     "pytest>=9.2.0",
 ]
 
+[tool.pyright]
+typeCheckingMode = "standard"
+reportIncompatibleMethodOverride = "error"
+
 [tool.pytest.ini_options]
 testpaths = ["test"]
 addopts = ["--import-mode=importlib"]

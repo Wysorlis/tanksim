@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from tanksim.tank import Tank
-from tanksim.link import Link
+from tanksim.link.link import Link
 
 class PhysicalProperty(StrEnum):
     pass

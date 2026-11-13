@@ -4,7 +4,7 @@ from pathlib import Path
 from tanksim.tank import Geometry, Tank, Port
 from tanksim.models.orifice import Orifice
 from tanksim.boundaries import Atmosphere
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.postprocessing import ReadResults
 from tanksim.physics import TankPhysicalProperty, LinkPhysicalProperty
 from tanksim.simulation import Simulation

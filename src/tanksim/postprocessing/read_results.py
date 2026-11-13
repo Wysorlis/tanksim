@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from tanksim.physics import TankPhysicalProperty, PhysicalProperty, PROPERTY_SPECS
 from tanksim.tank import Tank
-from tanksim.link import Link
+from tanksim.link.link import Link
 from tanksim.postprocessing.reader import ELEMENT_TO_READER, Reader
 from tanksim.postprocessing.time_evolution import TimeEvolution
 

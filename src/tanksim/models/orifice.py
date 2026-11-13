@@ -1,29 +1,26 @@
 # coding: utf-8
 import numpy as np
-from dataclasses import dataclass
+from typing import override
 
 from tanksim.tank import Port
 from tanksim.boundaries import Boundary
+
+
+from tanksim.models import FlowModel
 from tanksim.constants import GRAVITY
 
-
-@dataclass
-class OrificeState:
-    liquid_velocity: float = 0.0  # m/s
-    liquid_density : float = 1000.0  # kg/m³
+from tanksim.link.link_state import LinkState
 
 
-class Orifice:
+class Orifice(FlowModel):
     def __init__(self, diameter: float):
-        self.state = OrificeState()
-
         self.diameter = diameter
-        self.section = np.pi * diameter**2.0 / 4.0
 
-    def update(self, dt, upstream: Port | Boundary, downstream: Port | Boundary) -> float:
+    @override
+    def compute(self, dt, upstream: Port | Boundary, downstream: Port | Boundary) -> LinkState:
         # Au moins une extrémité est un Port, vérifié par Link.
         reference_port = upstream if isinstance(upstream, Port) else downstream
-        self.state.liquid_density = reference_port.tank.liquid_density
+        liquid_density = reference_port.tank.liquid_density
         
         # Les deux extrémités exposent une pression
         delta_pressure = upstream.pressure - downstream.pressure
@@ -34,21 +31,24 @@ class Orifice:
             # La pression extérieure s'applique au port connecté.
             delta_z = 0.0
 
-        driving_velocity_squared = 2.0 * delta_pressure / self.state.liquid_density - 2.0 * GRAVITY * delta_z
+        driving_velocity_squared = 2.0 * delta_pressure / liquid_density - 2.0 * GRAVITY * delta_z
 
         # Empêcher un départ de liquide depuis un port dénoyé.
         donor = upstream if driving_velocity_squared >= 0.0 else downstream
         if isinstance(donor, Port) and not donor.is_submerged:
             driving_velocity_squared = 0.0
 
-        self.state.liquid_velocity = np.sign(driving_velocity_squared) * np.sqrt(abs(driving_velocity_squared))
+        liquid_velocity = np.sign(driving_velocity_squared) * np.sqrt(abs(driving_velocity_squared))
 
-        self.liquid_massflow = self.state.liquid_density * self.section * self.state.liquid_velocity
-        return self.liquid_massflow
-
+        return LinkState(
+            liquid_velocity=liquid_velocity,
+            liquid_density=liquid_density,
+        )
+    
     @property
-    def massflow(self) -> float:
-        return self.state.liquid_density * self.section * self.state.liquid_velocity
+    @override
+    def section(self) -> float:
+        return np.pi * self.diameter**2 / 4
 
 
 if __name__ == "__main__":
