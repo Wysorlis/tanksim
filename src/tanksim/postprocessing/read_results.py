@@ -100,14 +100,10 @@ class ReadResults():
 
         with PdfPages(path) as pdf:
             for (element_name, variable_name), evolution in self.requested_variables.items():
-                spec = PROPERTY_SPECS.get(variable_name)
-                
-                label = spec.label if spec else variable_name
-                ylabel = f"{variable_name} [{spec.unit}]" if spec else variable_name
-
                 fig, ax = plt.subplots(figsize=(10, 5))
+                
                 try:
-                    self._generate_plot_figure(ax, element_name, evolution)
+                    self._generate_plot_figure(ax, (element_name, variable_name), evolution)
 
                     fig.tight_layout()
                     pdf.savefig(fig)
