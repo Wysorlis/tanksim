@@ -5,6 +5,7 @@ import math
 import matplotlib.pyplot as plt
 from pathlib import Path
 from functools import partial
+import pandas as pd
 
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -111,6 +112,29 @@ class ReadResults():
                     plt.close(fig)
 
         return path
+
+    def generate_report(self, path: Path):
+        if not self.requested_variables:
+            raise ValueError("No requested variables to export.")
+
+        path = Path(path)
+
+        first_variable = next(iter(self.requested_variables.values()))
+
+        data = {"time": first_variable.time}
+
+        for (element_name, variable_name), evolution in self.requested_variables.items():
+            if evolution.time != first_variable.time:
+                raise ValueError(
+                    f"Time samples differ for {element_name!r}, "
+                    f"property {variable_name!r}."
+                )
+            data[f"{element_name}_{variable_name}"] = evolution.value
+
+        df = pd.DataFrame(data)
+
+        df.to_string(path, index=False)
+
 
     def show(self):
             count = len(self.requested_variables)

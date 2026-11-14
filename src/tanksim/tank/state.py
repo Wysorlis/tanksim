@@ -6,3 +6,4 @@ from dataclasses import dataclass
 class TankState:
     liquid_mass: float = 0.0  # kg
     liquid_density: float = 1000.0  # kg
+    overflow_liquid_mass: float = 0.0  # kg

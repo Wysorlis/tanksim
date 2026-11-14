@@ -57,14 +57,13 @@ def main():
     results = ReadResults()
     results.add_time_evolution(tank, TankPhysicalProperty.MASS)
     results.add_time_evolution(tank, TankPhysicalProperty.LEVEL)
-    # results.add_time_evolution(tank, TankPhysicalProperty.VOLUME)
-    # results.add_time_evolution(tank, TankPhysicalProperty.DENSITY)
     results.add_time_evolution(connection, LinkPhysicalProperty.MASSFLOW)
-    # results.add_time_evolution(connection, LinkPhysicalProperty.VELOCITY)
-    # results.add_time_evolution(connection, LinkPhysicalProperty.DENSITY)
     results.show()
 
     results.save_pdf()
+    cwd = Path.cwd()
+    folder = cwd / "examples/1-tank_drainage_to_atmosphere/report.csv"
+    results.generate_report(folder)
 
 if __name__ == "__main__":
     main()

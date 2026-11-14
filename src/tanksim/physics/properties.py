@@ -14,6 +14,7 @@ class TankPhysicalProperty(PhysicalProperty):
     DENSITY = "liquid_density"
     VOLUME = "liquid_volume"
     LEVEL = "level"
+    OVERFLOW_MASS = "overflow_liquid_mass"
 
 
 class LinkPhysicalProperty(PhysicalProperty):
@@ -40,6 +41,7 @@ PROPERTY_SPECS = {
     TankPhysicalProperty.MASS: PropertySpec("kg", "Liquid mass"),
     TankPhysicalProperty.VOLUME: PropertySpec("m³", "Liquid volume"),
     TankPhysicalProperty.LEVEL: PropertySpec("m", "Liquid level"),
+    TankPhysicalProperty.OVERFLOW_MASS: PropertySpec("kg", "Cumulative overflow liquid mass"),
     LinkPhysicalProperty.MASSFLOW: PropertySpec("kg/s", "Liquid massflow rate"),
     LinkPhysicalProperty.VELOCITY: PropertySpec("m/s", "Liquid velocity"),
     LinkPhysicalProperty.DENSITY: PropertySpec("kg/m³", "Liquid density"),

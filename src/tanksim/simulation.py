@@ -42,7 +42,7 @@ class Simulation:
             link.update(self.dt)
 
         # 2. Limiter les prélèvements aux masses disponibles.
-        net_massflows = self._limit_outflows()
+        self._limit_outflows()
 
         # 3. Construire les débits corrigés.
         net_massflows = self._compute_net_massflows()
@@ -186,3 +186,4 @@ class Simulation:
 
     def enable_state_recording(self, interval: float):
         self.results_storage.enable(interval)
+        

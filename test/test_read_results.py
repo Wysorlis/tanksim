@@ -107,3 +107,75 @@ def test_get_element_reader_str_found_but_unsupported():
 
         with pytest.raises(TypeError, match="Unsupported stored class: 'DummyElement'"):
             _get_element_reader(file, "dummy")
+
+def test_generate_csv_report():
+    dummy = DummyElement()
+
+    with h5py.File(BytesIO(), "w") as file:
+        group = file.create_group(f"dummy/type")
+        group.attrs["class_name"] = type(dummy).__name__
+
+        with pytest.raises(TypeError, match="Unsupported stored class: 'DummyElement'"):
+            _get_element_reader(file, "dummy")
+
+def test_generate_report_writes_expected_values(tmp_path):
+    results = ReadResults(tmp_path / "results.h5")
+
+    results.add_requested_variable(
+        "TANK",
+        TankPhysicalProperty.MASS,
+        TimeEvolution(time=[0.0, 1.0], value=[1000.0, 800.0]),
+    )
+    results.add_requested_variable(
+        "TANK",
+        TankPhysicalProperty.LEVEL,
+        TimeEvolution(time=[0.0, 1.0], value=[1.0, 0.8]),
+    )
+
+    path = tmp_path / "report.txt"
+    results.generate_report(path)
+
+    assert path.is_file()
+
+    lines = path.read_text().splitlines()
+
+    assert lines[0].split() == [
+        "time",
+        "TANK_liquid_mass",
+        "TANK_level",
+    ]
+
+    # split() ignore les espaces utilisés pour aligner le tableau.
+    rows = [
+        [float(value) for value in line.split()]
+        for line in lines[1:]
+    ]
+
+    assert len(rows) == 2
+    assert rows[0] == pytest.approx([0.0, 1000.0, 1.0])
+    assert rows[1] == pytest.approx([1.0, 800.0, 0.8])
+
+
+def test_generate_report_rejects_empty_selection(tmp_path):
+    results = ReadResults(tmp_path / "results.h5")
+
+    with pytest.raises(ValueError, match="No requested variables"):
+        results.generate_report(tmp_path / "report.txt")
+
+
+def test_generate_report_rejects_different_time_samples(tmp_path):
+    results = ReadResults(tmp_path / "results.h5")
+
+    results.add_requested_variable(
+        "TANK",
+        TankPhysicalProperty.MASS,
+        TimeEvolution(time=[0.0, 1.0], value=[1000.0, 800.0]),
+    )
+    results.add_requested_variable(
+        "TANK",
+        TankPhysicalProperty.LEVEL,
+        TimeEvolution(time=[0.0, 2.0], value=[1.0, 0.8]),
+    )
+
+    with pytest.raises(ValueError, match="Time samples differ"):
+        results.generate_report(tmp_path / "report.txt")

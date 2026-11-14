@@ -24,11 +24,21 @@ class Tank:
     def set_level(self, level: float):
         if self.geometry is None:
             raise ValueError("Geometry must be set before asigning level to a tank. Consider using tank.add_geometry().")
+
+        if level < 0.0 or level > self.geometry.height:
+            raise ValueError(f"Level must be set between 0 and the height of the tank. {self.name!r}: [{0.0}, {self.geometry.height}].\n"
+                             f"But requested value is {level}.")
         
         self.state.liquid_mass = level * self.geometry.surface * self.liquid_density
 
     def update(self, dt, net_massflow):
-        self.state.liquid_mass = max(0.0, self.state.liquid_mass + net_massflow * dt)
+        new_mass = max(0.0, self.state.liquid_mass + net_massflow * dt)
+
+        maximum_mass = self.liquid_density * self.geometry.volume
+        overflow_mass = max(0.0, new_mass - maximum_mass)
+
+        self.state.liquid_mass = new_mass - overflow_mass
+        self.state.overflow_liquid_mass += overflow_mass
 
     def show(self):
         print(f"+++++++ {self.name} +++++++")
