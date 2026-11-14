@@ -101,6 +101,8 @@ def main():
     results.add_time_evolution(left_tank, TankPhysicalProperty.MASS)
     results.add_time_evolution(rigth_tank, TankPhysicalProperty.MASS)
     results.add_time_evolution(bot_tank, TankPhysicalProperty.MASS)
+    results.add_time_evolution(rigth_bot, LinkPhysicalProperty.MASSFLOW)
+    results.add_time_evolution(left_bot, LinkPhysicalProperty.MASSFLOW)
 
     results.show()
 
