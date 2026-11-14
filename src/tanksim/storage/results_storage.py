@@ -47,9 +47,11 @@ class ResultsStorage:
             if self._first_write:
                 self._initialise_tanks(simulation, file)
                 self._initialise_links(simulation, file)
+                self._initialise_devices(simulation, file)
 
             self._append_tank_state(simulation, file)
             self._append_link_state(simulation, file)
+            self._append_device_state(simulation, file)
 
         self._first_write = False
         self.next_record_time += self.dt_record_time
@@ -114,6 +116,23 @@ class ResultsStorage:
             for field in fields(link.state):
                 group = file[f"{link.name}/{field.name}"]
                 value = getattr(link.state, field.name)
+
+                self._append_sample(group, simulation.time, value)
+
+    def _initialise_devices(self, simulation: Simulation, file: File):
+        for device in simulation.devices:
+            type_group = file.create_group(f"{device.name}/type")
+            type_group.attrs["class_name"] = type(device).__name__
+
+            for field in fields(device.state):
+                group = file.create_group(f"{device.name}/{field.name}")
+                self._initialise_dataset_time_series(group)
+
+    def _append_device_state(self, simulation: Simulation, file: File):
+        for device in simulation.devices:
+            for field in fields(device.state):
+                group = file[f"{device.name}/{field.name}"]
+                value = getattr(device.state, field.name)
 
                 self._append_sample(group, simulation.time, value)
 

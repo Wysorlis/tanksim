@@ -7,7 +7,8 @@ from difflib import get_close_matches
 
 from tanksim.physics import PhysicalProperty, TankPhysicalProperty, LinkPhysicalProperty, PROPERTY_SPECS
 from tanksim.tank import Tank
-from tanksim.link.link import Link
+from tanksim.link import Link
+from tanksim.devices import Source
 from tanksim.postprocessing.time_evolution import TimeEvolution
 from tanksim.exceptions import KeyRequestError
 
@@ -117,10 +118,33 @@ class LinkReader(Reader):
             time=velocity["time"][:].tolist(),
             value=massflow.tolist(),
         )
+
+class SourceReader(Reader):
+    def __init__(self):
+        super().__init__()
+
+        self._property_readers = {
+            # LinkPhysicalProperty.MASSFLOW: self._read_massflow,
+            # LinkPhysicalProperty.VOLUME: self._read_volume,
+        }
+
+    # def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
+    #     section = file[f"{element_name}/geometry"].attrs["section"]
+        
+    #     velocity = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.VELOCITY}")
+    #     density = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.DENSITY}")        
+
+    #     massflow = density["values"][:] * section * velocity["values"][:]
+
+    #     return TimeEvolution(
+    #         time=velocity["time"][:].tolist(),
+    #         value=massflow.tolist(),
+    #     )
         
 
 ELEMENT_TO_READER = {
     Tank: TankReader,
     Link: LinkReader,
+    Source: SourceReader,
 }
 

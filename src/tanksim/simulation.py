@@ -4,15 +4,17 @@ from math import isclose
 from pathlib import Path
 
 from tanksim.tank import Tank, Port
-from tanksim.link.link import Link
+from tanksim.link import Link
+from tanksim.devices import Device
 from tanksim.storage.results_storage import ResultsStorage
 
 class Simulation:
-    def __init__(self, tanks: list[Tank]=None, links: list[Link]=None):
+    def __init__(self, tanks: list[Tank]=None, links: list[Link]=None, devices: list[Device]=None):
         self.time = 0.0
         self.dt = 0.1
         self.tanks = []
         self.links = []
+        self.devices = []
 
         if tanks is not None:
             for tank in tanks:
@@ -21,6 +23,10 @@ class Simulation:
         if links is not None:
             for link in links:
                 self.add_link(link)
+
+        if devices is not None:
+            for device in devices:
+                self.add_device(device)
 
         self.results_storage = ResultsStorage()
 
@@ -32,8 +38,12 @@ class Simulation:
         self._check_element_name(link.name)
         self.links.append(link)
 
+    def add_device(self, device: Device):
+        self._check_element_name(device.name)
+        self.devices.append(device)
+
     def _check_element_name(self, name: str):
-        if any(element.name == name for element in self.tanks + self.links):
+        if any(element.name == name for element in self.tanks + self.links + self.devices):
             raise ValueError(f"Element name {name!r} is already in use.")
     
     def step(self):
@@ -46,6 +56,8 @@ class Simulation:
 
         # 3. Construire les débits corrigés.
         net_massflows = self._compute_net_massflows()
+        for device in self.devices:
+            net_massflows[device.tank] += device.massflow
 
         # 4. Mettre à jour les tanks.
         for tank in self.tanks:

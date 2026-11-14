@@ -11,18 +11,19 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from tanksim.physics import TankPhysicalProperty, PhysicalProperty, PROPERTY_SPECS
 from tanksim.tank import Tank
-from tanksim.link.link import Link
+from tanksim.link import Link
+from tanksim.devices import Source
 from tanksim.postprocessing.reader import ELEMENT_TO_READER, Reader
 from tanksim.postprocessing.time_evolution import TimeEvolution
 from tanksim.exceptions import DuplicateRequestError
 
-type Element = Tank | Link
+type Element = Tank | Link | Source
 
 def _get_element_name(element: str | Element) -> str:
     if isinstance(element, str):
         return element
 
-    if isinstance(element, (Tank, Link)):
+    if isinstance(element, (Tank, Link, Source)):
         return element.name
 
     raise TypeError(f"Unsupported type: {type(element).__name__}")
