@@ -1,9 +1,14 @@
 # coding: utf-8
+from __future__ import annotations
+
 from tanksim.link.link_state import LinkState
 from tanksim.tank import Port
-from tanksim.models.model import FlowModel
 from tanksim.boundaries import Boundary
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tanksim.models.model import FlowModel
 
 class Link:
     def __init__(self, name: str, upstream: Port | Boundary, downstream: Port | Boundary, model: FlowModel, align_ports: bool = False):
