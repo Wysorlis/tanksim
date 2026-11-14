@@ -10,6 +10,7 @@ references/empty.xlsx
 regenerate_project.py
 tanksim_sources.txt
 .coverage
+pytest-cov
 
 # Construction du paquet
 build/
