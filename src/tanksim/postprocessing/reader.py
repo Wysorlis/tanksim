@@ -119,6 +119,7 @@ class LinkReader(Reader):
             value=massflow.tolist(),
         )
 
+
 class SourceReader(Reader):
     def __init__(self):
         super().__init__()
@@ -128,19 +129,6 @@ class SourceReader(Reader):
             # LinkPhysicalProperty.VOLUME: self._read_volume,
         }
 
-    # def _read_massflow(self, file: File, element_name: str) -> TimeEvolution:
-    #     section = file[f"{element_name}/geometry"].attrs["section"]
-        
-    #     velocity = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.VELOCITY}")
-    #     density = self._get_series_group(file, f"{element_name}/{LinkPhysicalProperty.DENSITY}")        
-
-    #     massflow = density["values"][:] * section * velocity["values"][:]
-
-    #     return TimeEvolution(
-    #         time=velocity["time"][:].tolist(),
-    #         value=massflow.tolist(),
-    #     )
-        
 
 ELEMENT_TO_READER = {
     Tank: TankReader,

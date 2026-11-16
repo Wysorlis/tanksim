@@ -31,6 +31,7 @@ def _get_element_name(element: str | Element) -> str:
 StrToClass = {
     "Tank": Tank,
     "Link": Link,
+    "Source": Source,
 }
 
 def _get_element_reader(file: h5py.File, element: str | Element) -> Reader:

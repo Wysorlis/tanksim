@@ -171,35 +171,4 @@ def test_outflow_limiter_preserves_flow_when_mass_is_sufficient():
 
     # Pendant 0,1 s à 2 kg/s, le tank perd 0,2 kg.
     assert tank.liquid_mass == pytest.approx(initial_mass - 0.2)
-
-
-def test_outflow_limiter_preserves_flow_when_mass_is_sufficient():
-    tank = Tank("SOURCE")
-    tank.set_geometry(Geometry(height=1.0, surface=1.0))
-    tank.state.liquid_density = 1000.0
-
-    # Hauteur choisie pour obtenir une vitesse de 2 m/s.
-    tank.set_level(2.0 / GRAVITY)
-
-    link = Link(
-        name="DRAIN",
-        upstream=Port(tank, 0.0),
-        downstream=Atmosphere(),
-        # Section de 0,001 m² → débit attendu de 2 kg/s.
-        model=Orifice(diameter=sqrt(4.0 * 0.001 / pi)),
-    )
-
-    simulation = Simulation(tanks=[tank], links=[link])
-    simulation.dt = 0.1
-    simulation.setup()
-
-    initial_mass = tank.liquid_mass
-    link.open()
-
-    simulation.step()
-
-    assert link.state.liquid_velocity == pytest.approx(2.0)
-    assert link.massflow == pytest.approx(2.0)
-
-    # Pendant 0,1 s à 2 kg/s, le tank perd 0,2 kg.
-    assert tank.liquid_mass == pytest.approx(initial_mass - 0.2)
+    

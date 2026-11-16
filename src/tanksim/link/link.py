@@ -44,6 +44,7 @@ class Link:
 
     def open(self):
         self.is_opened = True
+        self.update(0.1)
 
     def close(self):
         self.is_opened = False

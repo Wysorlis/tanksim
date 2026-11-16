@@ -2,7 +2,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from tanksim.tank import Tank
-from tanksim.link.link import Link
+from tanksim.link import Link
+from tanksim.devices import Source
 
 class PhysicalProperty(StrEnum):
     pass
@@ -31,6 +32,7 @@ class SourcePhysicalProperty(PhysicalProperty):
 CLASS_TO_PROPERTY = {
     Tank: TankPhysicalProperty,
     Link: LinkPhysicalProperty,
+    Source: SourcePhysicalProperty,
 }
 
 

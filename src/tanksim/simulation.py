@@ -47,6 +47,10 @@ class Simulation:
             raise ValueError(f"Element name {name!r} is already in use.")
     
     def step(self):
+        if self.time == 0.0:
+            # On sauvegarde le premier instant
+            self.results_storage.save_state(self)
+
         # 1. Calculer les écoulements proposés par les modèles.
         for link in self.links:
             link.update(self.dt)
@@ -198,4 +202,5 @@ class Simulation:
 
     def enable_state_recording(self, interval: float):
         self.results_storage.enable(interval)
+
         

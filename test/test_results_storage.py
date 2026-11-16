@@ -37,6 +37,19 @@ def test_recorded_states_can_be_read_back(tmp_path):
 
     link.open()
 
+    times.append(simulation.time)
+    expected.append({
+        ("TANK", TP.MASS): tank.liquid_mass,
+        ("TANK", TP.DENSITY): tank.liquid_density,
+        ("TANK", TP.VOLUME): tank.liquid_volume,
+        ("TANK", TP.LEVEL): tank.level,
+        ("DRAIN", LP.VELOCITY): link.state.liquid_velocity,
+        ("DRAIN", LP.DENSITY): link.state.liquid_density,
+        ("DRAIN", LP.MASSFLOW): link.massflow,
+    })
+    
+
+
     for index in range(3):
         if index == 2:
             link.close()
