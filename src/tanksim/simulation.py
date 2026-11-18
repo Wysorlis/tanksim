@@ -200,7 +200,7 @@ class Simulation:
         for tank, elevation in resolved.items():
             tank.bottom_elevation = elevation
 
-    def enable_state_recording(self, interval: float, batch_size: int=1, path: str | Path | None=None):
+    def enable_state_recording(self, interval: float, batch_size: int | None=1, path: str | Path | None=None):
         storage = self.results_storage
         if storage.has_started:
             raise RuntimeError("Recording configuration cannot be changed after recording has started.")

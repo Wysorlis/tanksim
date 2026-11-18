@@ -29,7 +29,7 @@ def main():
     simulation.setup()
 
     # Variables declaration
-    simulation.enable_state_recording(interval=5.0, batch_size=100)
+    simulation.enable_state_recording(interval=5.0, batch_size=None)
     t_max = 300.0
     t_print = 0.0
     dt_print = 5.0

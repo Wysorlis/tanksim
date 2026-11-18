@@ -42,13 +42,10 @@ class ResultsStorage:
         self.next_record_time = start_time
         self._is_recording = True
 
-    def set_batch_size(self, batch_size: int):
-        if not isinstance(batch_size, int):
-            raise ValueError("Batch size must be >= 1.")
-            
-        if type(batch_size) is not int or batch_size < 1:
-            raise ValueError("Batch size must be an integer >= 1.")
-
+    def set_batch_size(self, batch_size: int | None):
+        if batch_size is not None:
+            if type(batch_size) is not int or batch_size < 1:
+                raise ValueError("Batch size must be None or an integer >= 1.")
 
         self.batch_size = batch_size
 
@@ -70,7 +67,7 @@ class ResultsStorage:
             self._capture_state(simulation),
         ))
 
-        if len(self._buffer) >= self.batch_size:
+        if self.batch_size is not None and len(self._buffer) >= self.batch_size:
             self.flush()
 
         # Sauter les échéances dépassées, sans inventer d'échantillons.
