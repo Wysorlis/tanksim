@@ -2,6 +2,7 @@
 from __future__ import annotations
 import __main__
 
+from math import isfinite
 from pathlib import Path
 
 from typing import TYPE_CHECKING
@@ -26,35 +27,85 @@ class ResultsStorage:
         self._is_recording = False
 
         self.stored_variables = {}
+        self._buffer = []
+
+        self.batch_size = 1
 
         self.next_record_time = 0.0
         self.dt_record_time = 5.0
 
-    def enable(self, interval: float):
-        if interval <= 0:
-            raise ValueError("Recording interval must be positive.")
+    def enable(self, interval: float, start_time: float):
+        if not isfinite(interval) or interval <= 0:
+            raise ValueError("Recording interval must be finite and positive.")
 
         self.dt_record_time = interval
+        self.next_record_time = start_time
         self._is_recording = True
-        
+
+    def set_batch_size(self, batch_size: int):
+        if not isinstance(batch_size, int):
+            raise ValueError("Batch size must be >= 1.")
+            
+        if type(batch_size) is not int or batch_size < 1:
+            raise ValueError("Batch size must be an integer >= 1.")
+
+
+        self.batch_size = batch_size
+
     def save_state(self, simulation: Simulation):
-        if not self._is_recording or simulation.time < self.next_record_time:
+        tolerance = 1e-12 * max(1.0, abs(simulation.time))
+
+        if not self._is_recording or simulation.time + tolerance < self.next_record_time:
             return
         
-        mode = "w" if self._first_write else "a"
-
-        with h5py.File(self.output_results_path, mode) as file:
-            if self._first_write:
+        if self._first_write:
+            with h5py.File(self.output_results_path, "w") as file:
                 self._initialise_tanks(simulation, file)
                 self._initialise_links(simulation, file)
                 self._initialise_devices(simulation, file)
+            self._first_write = False
 
-            self._append_tank_state(simulation, file)
-            self._append_link_state(simulation, file)
-            self._append_device_state(simulation, file)
+        self._buffer.append((
+            simulation.time,
+            self._capture_state(simulation),
+        ))
 
-        self._first_write = False
-        self.next_record_time += self.dt_record_time
+        if len(self._buffer) >= self.batch_size:
+            self.flush()
+
+        # Sauter les échéances dépassées, sans inventer d'échantillons.
+        while self.next_record_time <= simulation.time + tolerance:
+            self.next_record_time += self.dt_record_time
+
+    def flush(self):
+        if not self._buffer:
+            return
+
+        paths = self._buffer[0][1].keys()
+
+        if any(values.keys() != paths for _, values in self._buffer):
+            raise ValueError("Recorded variables changed during the batch.")
+
+        times = [time for time, _ in self._buffer]
+
+        columns = {
+            path: [values[path] for _, values in self._buffer]
+            for path in paths
+        }
+
+        with h5py.File(self.output_results_path, "a") as file:
+            for path, values in columns.items():
+                self._append_samples(file[path], times, values)
+
+        self._buffer.clear()
+        
+    def finish(self):
+        self.flush()
+        self._is_recording = False
+
+    @property
+    def has_started(self) -> bool:
+        return not self._first_write
 
     def _initialise_dataset_time_series(self, group: Group):
         times = group.create_dataset(
@@ -91,14 +142,6 @@ class ResultsStorage:
                 group = file.create_group(f"{tank.name}/{field.name}")
                 self._initialise_dataset_time_series(group)
 
-    def _append_tank_state(self, simulation: Simulation, file: File):
-        for tank in simulation.tanks:
-            for field in fields(tank.state):
-                group = file[f"{tank.name}/{field.name}"]
-                value = getattr(tank.state, field.name)
-
-                self._append_sample(group, simulation.time, value)
-
     def _initialise_links(self, simulation: Simulation, file: File):
          for link in simulation.links:
             type_group = file.create_group(f"{link.name}/type")
@@ -111,14 +154,6 @@ class ResultsStorage:
                 group = file.create_group(f"{link.name}/{field.name}")
                 self._initialise_dataset_time_series(group)
 
-    def _append_link_state(self, simulation: Simulation, file: File):
-        for link in simulation.links:
-            for field in fields(link.state):
-                group = file[f"{link.name}/{field.name}"]
-                value = getattr(link.state, field.name)
-
-                self._append_sample(group, simulation.time, value)
-
     def _initialise_devices(self, simulation: Simulation, file: File):
         for device in simulation.devices:
             type_group = file.create_group(f"{device.name}/type")
@@ -128,21 +163,27 @@ class ResultsStorage:
                 group = file.create_group(f"{device.name}/{field.name}")
                 self._initialise_dataset_time_series(group)
 
-    def _append_device_state(self, simulation: Simulation, file: File):
-        for device in simulation.devices:
-            for field in fields(device.state):
-                group = file[f"{device.name}/{field.name}"]
-                value = getattr(device.state, field.name)
+    def _append_samples(self, group: Group, times: list[float], values: list[float]):
+        time_dataset = group["time"]
+        value_dataset = group["values"]
 
-                self._append_sample(group, simulation.time, value)
+        start = len(time_dataset)
+        stop = start + len(times)
 
-    def _append_sample(self, group: Group, time: float, value: float) -> None:
-        times = group["time"]
-        values = group["values"]
+        time_dataset.resize((stop,))
+        value_dataset.resize((stop,))
 
-        index = len(times)
-        times.resize(index + 1, axis=0)
-        values.resize(index + 1, axis=0)
+        time_dataset[start:stop] = times
+        value_dataset[start:stop] = values
 
-        times[index] = time
-        values[index] = value
+    def _capture_state(self, simulation: Simulation) -> dict[str, float]:
+        values = {}
+
+        elements = simulation.tanks + simulation.links + simulation.devices
+
+        for element in elements:
+            for field in fields(element.state):
+                key = f"{element.name}/{field.name}"
+                values[key] = float(getattr(element.state, field.name))
+
+        return values

@@ -200,7 +200,23 @@ class Simulation:
         for tank, elevation in resolved.items():
             tank.bottom_elevation = elevation
 
-    def enable_state_recording(self, interval: float):
-        self.results_storage.enable(interval)
+    def enable_state_recording(self, interval: float, batch_size: int=1, path: str | Path | None=None):
+        storage = self.results_storage
+        if storage.has_started:
+            raise RuntimeError("Recording configuration cannot be changed after recording has started.")
 
+        storage.set_batch_size(batch_size)
+
+        if path is not None:
+            output_path = Path(path)
+
+            if not output_path.is_absolute():
+                output_path = storage.output_folder_path / output_path
+
+            storage.output_results_path = output_path
+
+        storage.enable(interval, start_time=self.time)
+
+    def finish(self):
+        self.results_storage.finish()
         

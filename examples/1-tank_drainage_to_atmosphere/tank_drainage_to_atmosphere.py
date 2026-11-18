@@ -29,7 +29,7 @@ def main():
     simulation.setup()
 
     # Variables declaration
-    simulation.enable_state_recording(interval=5.0)
+    simulation.enable_state_recording(interval=5.0, batch_size=100)
     t_max = 300.0
     t_print = 0.0
     dt_print = 5.0
@@ -52,7 +52,9 @@ def main():
 
             t_print += dt_print
 
-        dt = simulation.step()
+        simulation.step()
+
+    simulation.finish()
 
     results = ReadResults()
     results.add_time_evolution(tank, TankPhysicalProperty.MASS)
